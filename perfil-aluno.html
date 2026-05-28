@@ -47,10 +47,31 @@
                     </div>
                     <div class="col-md-6">
                         <label class="label-custom d-block text-uppercase small fw-bold text-muted">Livros em Empréstimo</label>
-                        <span class="value-custom">01 de 03 permitidos</span>
+                        <span class="value-custom" id="contadorLivros">01 de 03 permitidos</span>
                     </div>
                 </div>
                 
+                <hr class="my-4 opacity-25">
+
+                <div class="text-start mb-4">
+                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-clock-history text-warning me-2"></i>Empréstimos Ativos</h6>
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center border-0 shadow-sm mb-2 rounded bg-light">
+                            <div>
+                                <span class="fw-bold d-block"><i class="bi bi-book-half text-secondary me-2"></i>Clean Code</span>
+                                <small class="text-muted ms-4">Devolução: 20/06/2026</small>
+                            </div>
+                            <span class="badge bg-warning text-dark rounded-pill" style="font-size: 0.75rem;">Perto do prazo</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="text-start" id="secaoReservas" style="display: none;">
+                    <h6 class="fw-bold text-primary mb-3"><i class="bi bi-bookmark-check me-2"></i>Minhas Novas Reservas</h6>
+                    <ul class="list-group" id="listaReservas">
+                        </ul>
+                </div>
+
                 <hr class="my-4 opacity-25">
 
                 <div class="d-flex justify-content-center">
@@ -60,3 +81,27 @@
         </div>
     </div>
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const reservas = JSON.parse(localStorage.getItem('minhasReservas')) || [];
+        
+        // Atualiza o contador de livros (1 fixo do Clean Code + quantidade de novas reservas)
+        const totalLivros = 1 + reservas.length;
+        document.getElementById('contadorLivros').innerText = `${totalLivros.toString().padStart(2, '0')} de 03 permitidos`;
+
+        // Se houver novas reservas no localStorage, exibe na Seção 2
+        if (reservas.length > 0) {
+            document.getElementById('secaoReservas').style.display = 'block';
+            const lista = document.getElementById('listaReservas');
+            
+            reservas.forEach(livro => {
+                lista.innerHTML += `
+                    <li class="list-group-item d-flex justify-content-between align-items-center border-0 shadow-sm mb-2 rounded">
+                        <span><i class="bi bi-bookmark text-primary me-2"></i> ${livro}</span>
+                        <span class="badge bg-info text-dark rounded-pill" style="font-size: 0.75rem;">Aguardando Retirada</span>
+                    </li>
+                `;
+            });
+        }
+    });
+</script>

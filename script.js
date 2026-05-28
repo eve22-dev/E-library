@@ -144,4 +144,24 @@ async function checkAuth() {
     clearTokens();
     window.location.href = "index.html";
     return false;
+
 }
+
+function reservarLivro(tituloLivro) {
+    // 1. Mostrar a nova mensagem de sucesso
+    alert("Livro reservado com sucesso! Você possui o prazo de 48h para o retirar na biblioteca.");
+    
+    // 2. Guardar o livro no localStorage (memória do navegador)
+    let livrosReservados = JSON.parse(localStorage.getItem('minhasReservas')) || [];
+    
+    // Evita adicionar o mesmo livro duas vezes
+    if (!livrosReservados.includes(tituloLivro)) {
+        livrosReservados.push(tituloLivro);
+        localStorage.setItem('minhasReservas', JSON.stringify(livrosReservados));
+    }
+    
+    // 3. Redirecionar para a página de perfil
+    window.location.href = "perfil-aluno.html";
+}
+
+
