@@ -47,11 +47,22 @@ if (loginForm) {
                 return;
             }
             const data = await response.json();
+            
+            // Mantém os seus tokens intactos:
             saveTokens(
                 data.accessToken,
                 data.refreshToken
             );
-            window.location.href = "home-aluno.html";
+            
+            // NOVA LÓGICA: Verifica o rádio botão selecionado no index.html
+            const userType = document.querySelector('input[name="userType"]:checked').value;
+            
+            if (userType === "funcionario") {
+                window.location.href = "admin-funcionario.html";
+            } else {
+                window.location.href = "home-aluno.html";
+            }
+            
         } catch (error) {
             console.error(error);
             alert("Erro ao conectar no servidor");
