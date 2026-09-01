@@ -1,167 +1,22 @@
-const API_URL = "https://e-library-backend-qytl.onrender.com";
+document.getElementById('loginForm').addEventListener('submit', function(event) {
+    event.preventDefault();
 
-function saveTokens(accessToken, refreshToken) {
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
-}
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const tipoUsuario = document.querySelector('input[name="userType"]:checked').value;
 
-function getAccessToken() {
-    return localStorage.getItem("accessToken");
-}
+    if (email && password) {
+        
+        console.log(`Autenticando ${tipoUsuario}...`);
 
-function getRefreshToken() {
-    return localStorage.getItem("refreshToken");
-}
-
-function clearTokens() {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-}
-
-const loginForm =
-    document.getElementById("loginForm");
-
-if (loginForm) {
-    loginForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const email =
-            document.getElementById("email").value;
-        const password =
-            document.getElementById("password").value;
-        try {
-            const response = await fetch(
-                `${API_URL}/auth/login`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        email,
-                        password
-                    })
-                }
-            );
-            if (!response.ok) {
-                alert("Email ou senha inválidos");
-                return;
-            }
-            const data = await response.json();
-            
-            // Mantém os seus tokens intactos:
-            saveTokens(
-                data.accessToken,
-                data.refreshToken
-            );
-            
-            // NOVA LÓGICA: Verifica o rádio botão selecionado no index.html
-            const userType = document.querySelector('input[name="userType"]:checked').value;
-            
-            if (userType === "funcionario") {
-                window.location.href = "admin-funcionario.html";
-            } else {
-                window.location.href = "home-aluno.html";
-            }
-            
-        } catch (error) {
-            console.error(error);
-            alert("Erro ao conectar no servidor");
+        if (tipoUsuario === "aluno") {
+            window.location.href = "home-aluno.html";
+        } 
+        else if (tipoUsuario === "funcionario") {
+            window.location.href = "admin-funcionario.html";
         }
-    });
-}
 
-async function verifyToken() {
-    const token = getAccessToken();
-    if (!token) {
-        return false;
+    } else {
+        alert("Por favor, preencha todos os campos corretamente.");
     }
-    try {
-        const response = await fetch(
-            `${API_URL}/auth/verify`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    token
-                })
-            }
-        );
-        const valid = await response.json();
-        return valid;
-    } catch (error) {
-        return false;
-    }
-}
-
-async function refreshToken() {
-    const refreshToken =
-        getRefreshToken();
-    if (!refreshToken) {
-        return false;
-    }
-    try {
-        const response = await fetch(
-            `${API_URL}/auth/refresh`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    refreshToken
-                })
-            }
-        );
-        if (!response.ok) {
-            clearTokens();
-            return false;
-        }
-        const data = await response.json();
-        saveTokens(
-            data.accessToken,
-            data.refreshToken
-        );
-        return true;
-    } catch (error) {
-        clearTokens();
-        return false;
-    }
-}
-
-async function checkAuth() {
-    const isValid =
-        await verifyToken();
-    if (isValid) {
-        return true;
-    }
-    const refreshed =
-        await refreshToken();
-    if (refreshed) {
-        return true;
-    }
-    clearTokens();
-    window.location.href = "index.html";
-    return false;
-
-}
-
-function reservarLivro(tituloLivro) {
-    // 1. Mostrar a nova mensagem de sucesso
-    alert("Livro reservado com sucesso! Você possui o prazo de 48h para o retirar na biblioteca.");
-    
-    // 2. Guardar o livro no localStorage (memória do navegador)
-    let livrosReservados = JSON.parse(localStorage.getItem('minhasReservas')) || [];
-    
-    // Evita adicionar o mesmo livro duas vezes
-    if (!livrosReservados.includes(tituloLivro)) {
-        livrosReservados.push(tituloLivro);
-        localStorage.setItem('minhasReservas', JSON.stringify(livrosReservados));
-    }
-    
-    // 3. Redirecionar para a página de perfil
-    window.location.href = "perfil-aluno.html";
-}
-
-
+});

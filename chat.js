@@ -1,39 +1,55 @@
-function abrirFecharChat() {
-    const janelaChat = document.getElementById("janela-chat");
-    if (janelaChat.style.display === "none") {
-        janelaChat.style.display = "block";
-    } else {
-        janelaChat.style.display = "none";
-    }
-}
-
-async function enviarMensagemParaBiblioteca() {
-    const inputMensagem = document.getElementById("chat-input").value;
+document.addEventListener("DOMContentLoaded", () => {
+    const toggleBtn = document.getElementById("chat-toggle-btn");
     const chatBox = document.getElementById("chat-box");
-    
-    chatBox.innerHTML += `<div class="text-end mb-2"><b>Você:</b> ${inputMensagem}</div>`;
-    document.getElementById("chat-input").value = ""; 
+    const closeBtn = document.getElementById("chat-close-btn");
+    const sendBtn = document.getElementById("chat-send-btn");
+    const chatInput = document.getElementById("chat-input");
+    const chatMessages = document.getElementById("chat-messages");
 
-    try {
-        const resposta = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: inputMensagem
-        });
+    toggleBtn.addEventListener("click", () => {
+        chatBox.style.display = chatBox.style.display === "none" ? "flex" : "none";
+    });
 
-        const textoDaIA = await resposta.text();
-        
-        chatBox.innerHTML += `<div class="text-start text-primary mb-2"><b>IA:</b> ${textoDaIA}</div>`;
-        chatBox.scrollTop = chatBox.scrollHeight; // Rola o chat para baixo
-        
-    } catch (error) {
-        console.error("Erro na comunicação com o servidor:", error);
+    closeBtn.addEventListener("click", () => {
+        chatBox.style.display = "none";
+    });
+
+    async function enviarMensagem() {
+        const texto = chatInput.value.trim();
+        if (!texto) return;
+
+        const userMsg = document.createElement("div");
+        userMsg.className = "msg-user";
+        userMsg.textContent = texto;
+        chatMessages.appendChild(userMsg);
+        chatInput.value = "";
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        try {
+            const resposta = await fetch('http://localhost:8080/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: texto
+            });
+
+            const data = await resposta.text();
+
+            const botMsg = document.createElement("div");
+            botMsg.className = "msg-bot";
+            botMsg.textContent = data;
+            chatMessages.appendChild(botMsg);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        } catch (error) {
+            const errorMsg = document.createElement("div");
+            errorMsg.className = "msg-bot";
+            errorMsg.textContent = "Erro de conexão com o servidor do chat.";
+            chatMessages.appendChild(errorMsg);
+        }
     }
 
-    document.getElementById("chat-input").addEventListener("keypress", function(event) {
-    if (event.key === "Enter") {
-        event.preventDefault(); // Evita que a página faça scroll ou recarregue
-        enviarMensagemParaBiblioteca();
-    }
+    sendBtn.addEventListener("click", enviarMensagem);
+    chatInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") enviarMensagem();
+    });
 });
-}
