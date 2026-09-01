@@ -2,16 +2,10 @@
 <html lang="pt-br">
     <head>
         <meta charset="UTF-8">
-        <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>E-library | Login</title>
-        <link
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-            rel="stylesheet">
-        <link
-            href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap"
-            rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="style.css">
     </head>
     <body class="d-flex align-items-center py-4 bg-light">
@@ -28,68 +22,37 @@
                                     Selecione seu perfil
                                 </p>
                             </header>
-                            <div
-                                class="btn-group w-100 mb-4"
-                                role="group">
-                                <input
-                                    type="radio"
-                                    class="btn-check"
-                                    name="userType"
-                                    id="aluno"
-                                    value="aluno"
-                                    checked>
-                                <label
-                                    class="btn btn-outline-primary"
-                                    for="aluno">
+                            <div class="btn-group w-100 mb-4" role="group">
+                                <input type="radio" class="btn-check" name="userType" id="aluno" value="aluno" checked>
+                                <label class="btn btn-outline-primary" for="aluno">
                                     Sou Aluno
                                 </label>
-                                <input
-                                    type="radio"
-                                    class="btn-check"
-                                    name="userType"
-                                    id="funcionario"
-                                    value="funcionario">
-                                <label
-                                    class="btn btn-outline-primary"
-                                    for="funcionario">
+                                <input type="radio" class="btn-check" name="userType" id="funcionario" value="funcionario">
+                                <label class="btn btn-outline-primary" for="funcionario">
                                     Sou Funcionário
                                 </label>
                             </div>
                             <form id="loginForm">
                                 <div class="form-floating mb-3">
-                                    <input
-                                        type="email"
-                                        class="form-control"
-                                        id="email"
-                                        placeholder="nome@fatec.sp.gov.br"
-                                        required>
+                                    <input type="email" class="form-control" id="email" placeholder="nome@fatec.sp.gov.br" required>
                                     <label for="email">
                                         E-mail Institucional
                                     </label>
                                 </div>
                                 <div class="form-floating mb-4">
-                                    <input
-                                        type="password"
-                                        class="form-control"
-                                        id="password"
-                                        placeholder="Senha"
-                                        required>
+                                    <input type="password" class="form-control" id="password" placeholder="Senha" required>
                                     <label for="password">
                                         Senha
                                     </label>
                                 </div>
-                                <button
-                                    type="submit"
-                                    class="btn btn-primary btn-lg w-100 shadow-sm">
+                                <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm">
                                     Entrar
                                 </button>
                             </form>
                             <div class="mt-4">
                                 <p class="small text-muted">
                                     Problemas para entrar?
-                                    <a
-                                        href="#"
-                                        class="text-decoration-none">
+                                    <a href="#" class="text-decoration-none">
                                         Contatar Suporte
                                     </a>
                                 </p>
@@ -99,23 +62,63 @@
                 </div>
             </div>
         </div>
+
+        <!-- ========================================== -->
+        <!-- INÍCIO DO CHATBOT FLUTUANTE (BIBLIOTECÁRIO)-->
+        <!-- ========================================== -->
+        
+        <!-- Botão Flutuante -->
+        <button class="btn btn-primary rounded-circle d-flex justify-content-center align-items-center" onclick="abrirFecharChat()" 
+                style="position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; z-index: 1050; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 24px;">
+            💬
+        </button>
+
+        <!-- Janela do Chat -->
+        <div id="janela-chat" class="card shadow-lg" 
+             style="display: none; position: fixed; bottom: 90px; right: 20px; width: 350px; z-index: 1050; border-radius: 10px; overflow: hidden;">
+            
+            <!-- Cabeçalho com botão de fechar -->
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2">
+                <strong>Bibliotecário Virtual</strong>
+                <button type="button" class="btn-close btn-close-white" onclick="abrirFecharChat()" aria-label="Close"></button>
+            </div>
+            
+            <!-- Área de histórico de mensagens -->
+            <div class="card-body bg-light" id="chat-box" style="height: 350px; overflow-y: auto;">
+                <div class="text-start text-secondary mb-2">
+                    <small>Olá! Como posso ajudar com o acervo da e-library hoje?</small>
+                </div>
+            </div>
+            
+            <!-- Área de envio -->
+            <div class="card-footer bg-white d-flex p-2">
+                <input type="text" id="chat-input" class="form-control me-2" placeholder="Digite sua dúvida...">
+                <button class="btn btn-primary" onclick="enviarMensagemParaBiblioteca()">Enviar</button>
+            </div>
+        </div>
+        <!-- ========================================== -->
+        <!-- FIM DO CHATBOT FLUTUANTE                   -->
+        <!-- ========================================== -->
+
+        <!-- Seus Scripts -->
         <script src="script.js"></script>
+        
+        <!-- Script do Chatbot (Crie este arquivo na mesma pasta do script.js) -->
+        <script src="chat.js"></script>
+
+        <!-- Script de Autenticação Original -->
         <script>
         (async () => {
-            const valid =
-                await verifyToken();
+            const valid = await verifyToken();
             if (valid) {
-                window.location.href =
-                    "home.html";
+                window.location.href = "home-aluno.html";
                 return;
             }
-            const refreshed =
-                await refreshToken();
+            const refreshed = await refreshToken();
             if (refreshed) {
-                window.location.href =
-                    "home.html";
+                window.location.href = "home-aluno.html";
             }
         })();
-    </script>
+        </script>
     </body>
 </html>

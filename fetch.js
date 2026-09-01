@@ -4,7 +4,7 @@ async function authFetch(url, options = {}) {
 
     options.headers = {
         ...options.headers,
-        Authorization: Bearer ${token},
+        Authorization: `Bearer ${token}`, // Correção aplicada aqui (usando crases)
         "Content-Type": "application/json"
     };
 
@@ -12,18 +12,14 @@ async function authFetch(url, options = {}) {
 
     if (response.status === 401) {
 
-        const refreshed =
-            await refreshToken();
+        const refreshed = await refreshToken();
 
         if (!refreshed) {
-
             window.location.href = "index.html";
-
             return;
         }
 
-        options.headers.Authorization =
-            Bearer ${getAccessToken()};
+        options.headers.Authorization = `Bearer ${getAccessToken()}`; // Correção aplicada aqui
 
         return fetch(url, options);
     }
