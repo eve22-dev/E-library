@@ -12,11 +12,59 @@
         body { 
             font-family: 'Poppins', sans-serif; 
             background-color: #f8f9fa; 
+            overflow-x: hidden;
+        }
+
+        /* Barra Lateral Estilizada */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 80px;
+            background: linear-gradient(180deg, #021341 40%, #dc3545 100%);            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+            z-index: 1000;
+            box-shadow: 3px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sidebar .brand-icon {
+            font-size: 1.8rem;
+            color: #fff;
+            margin-bottom: 30px;
+        }
+
+        .sidebar-item {
+            color: rgba(255,255,255,0.7);
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+        }
+
+        .sidebar-item:hover, .sidebar-item.active {
+            color: #fff;
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        /* Conteúdo Principal Ajustado para a Sidebar */
+        .main-content {
+            margin-left: 80px;
+            padding: 30px;
         }
 
         .navbar-custom {
             background-color: #031330 !important;
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            border-radius: 12px;
         }
 
         .navbar-brand { 
@@ -60,171 +108,199 @@
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom mb-4">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="#">
-                <i class="bi bi-book-half me-2"></i>e-library
-            </a>
+    <!-- Barra Lateral -->
+    <div class="sidebar">
+        <div class="brand-icon">
+            <i class="bi bi-book-half"></i>
+        </div>
+        <a href="home-aluno.html" class="sidebar-item active" title="Home">
+            <i class="bi bi-house-door-fill"></i>
+        </a>
+        <a href="#secao-emprestimos" class="sidebar-item" title="Meus Empréstimos">
+            <i class="bi bi-clock-history"></i>
+        </a>
+        <a href="#secao-catalogo" class="sidebar-item" title="Catálogo de Livros">
+            <i class="bi bi-grid-fill"></i>
+        </a>
+        <a href="#" id="sidebarMeuPerfil" class="sidebar-item" title="Meu Perfil">
+            <i class="bi bi-person-circle"></i>
+        </a>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="main-content">
+        <nav class="navbar navbar-expand-lg navbar-dark navbar-custom mb-4 px-4">
+            <div class="container-fluid">
+                <a class="navbar-brand fw-bold" href="#">
+                    Painel do Aluno
+                </a>
                 <div class="ms-auto">
                     <a class="btn btn-outline-light rounded-pill px-4 fw-bold" href="#" id="btnMeuPerfil">
-                <i class="bi bi-person-circle me-1"></i> Meu Perfil
-             </a>
-        </div>
-        </div>
-    </nav>
-
-    
-    <div class="container py-4">
-        
-        <section class="mb-5">
-            <h5 class="fw-bold mb-3 text-secondary text-uppercase small"><i class="bi bi-clock-history me-2"></i>Seus Empréstimos</h5>
-            <div class="row">
-                <div class="col-md-6 col-lg-4">
-                    <div class="card border-start border-warning border-4 shadow-sm rounded-3">
-                        <div class="card-body">
-                            <h6 class="card-title fw-bold text-dark mb-1">Clean Code</h6>
-                            <p class="card-text text-muted mb-2 small">Devolução: 20/05/2026</p>
-                            <span class="badge bg-warning text-dark rounded-pill" style="font-size: 0.7rem;">Perto do prazo</span>
-                        </div>
-                    </div>
+                        <i class="bi bi-person-circle me-1"></i> Meu Perfil
+                    </a>
                 </div>
             </div>
-        </section>
+        </nav>
 
-        <hr class="my-5 opacity-25">
-
-        <section>
-            <h5 class="fw-bold mb-4 text-secondary text-uppercase small"><i class="bi bi-grid-fill me-2"></i>Catálogo Disponível</h5>
-            <div class="row g-4 align-items-stretch">
-                
-                <div class="col-6 col-md-4 col-lg-3">
-                    <div class="card h-100 card-livro shadow-sm">
-                        <img src="img/javaoca.png" class="card-img-top" alt="Capa Java OCA">
-                        <div class="card-body text-center d-flex flex-column">
-                            <h6 class="fw-bold text-dark mb-1 text-truncate">Java OCA 1Z0-808</h6>
-                            <p class="small text-muted mb-3">5 unidades</p>
-                            <button class="btn btn-primary btn-sm w-100 btn-reservar mt-auto">Reservar</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-6 col-md-4 col-lg-3">
-                    <div class="card h-100 card-livro shadow-sm">
-                        <img src="img/sql.png" class="card-img-top" alt="Capa Guia de MySQL">
-                        <div class="card-body text-center d-flex flex-column">
-                            <h6 class="fw-bold text-dark mb-1 text-truncate">Guia de MySQL</h6>
-                            <p class="small text-muted mb-3">2 unidades</p>
-                            <button class="btn btn-primary btn-sm w-100 btn-reservar mt-auto">Reservar</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-6 col-md-4 col-lg-3">
-                    <div class="card h-100 card-livro shadow-sm opacity-75">
-                        <img src="https://m.media-amazon.com/images/I/41zoxjP9lcL._AC_UF1000,1000_QL80_.jpg" class="card-img-top" alt="Clean Code">
-                        <div class="card-body text-center d-flex flex-column">
-                            <h6 class="fw-bold text-dark mb-1">Clean Code</h6>
-                            <div class="mt-auto">
-                                <span class="badge bg-danger rounded-pill">JÁ RESERVADO</span>
+        <div class="container-fluid py-2">
+            
+            <section class="mb-5" id="secao-emprestimos">
+                <h5 class="fw-bold mb-3 text-secondary text-uppercase small"><i class="bi bi-clock-history me-2"></i>Seus Empréstimos</h5>
+                <div class="row">
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card border-start border-warning border-4 shadow-sm rounded-3">
+                            <div class="card-body">
+                                <h6 class="card-title fw-bold text-dark mb-1">Clean Code</h6>
+                                <p class="card-text text-muted mb-2 small">Devolução: 20/05/2026</p>
+                                <span class="badge bg-warning text-dark rounded-pill" style="font-size: 0.7rem;">Perto do prazo</span>
                             </div>
                         </div>
                     </div>
                 </div>
+            </section>
 
-                <div class="col-6 col-md-4 col-lg-3">
-                    <div class="card h-100 card-livro shadow-sm">
-                        <img src="img/java.png" class="card-img-top" alt="Java How to Program">
-                        <div class="card-body text-center d-flex flex-column">
-                            <h6 class="fw-bold text-dark mb-1 text-truncate">Java: Como Programar</h6>
-                            <p class="small text-muted mb-3">1 unidade</p>
-                            <button class="btn btn-primary btn-sm w-100 btn-reservar mt-auto">Reservar</button>
+            <hr class="my-5 opacity-25">
+
+            <section id="secao-catalogo">
+                <h5 class="fw-bold mb-4 text-secondary text-uppercase small"><i class="bi bi-grid-fill me-2"></i>Catálogo Disponível</h5>
+                <div class="row g-4 align-items-stretch">
+                    
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <div class="card h-100 card-livro shadow-sm">
+                            <img src="img/javaoca.png" class="card-img-top" alt="Capa Java OCA">
+                            <div class="card-body text-center d-flex flex-column">
+                                <h6 class="fw-bold text-dark mb-1 text-truncate">Java OCA 1Z0-808</h6>
+                                <p class="small text-muted mb-3">5 unidades</p>
+                                <button class="btn btn-primary btn-sm w-100 btn-reservar mt-auto btn-acao-reservar">Reservar</button>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-            </div>
-        </section>
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <div class="card h-100 card-livro shadow-sm">
+                            <img src="img/sql.png" class="card-img-top" alt="Capa Guia de MySQL">
+                            <div class="card-body text-center d-flex flex-column">
+                                <h6 class="fw-bold text-dark mb-1 text-truncate">Guia de MySQL</h6>
+                                <p class="small text-muted mb-3">2 unidades</p>
+                                <button class="btn btn-primary btn-sm w-100 btn-reservar mt-auto btn-acao-reservar">Reservar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <div class="card h-100 card-livro shadow-sm opacity-75">
+                            <img src="https://m.media-amazon.com/images/I/41zoxjP9lcL._AC_UF1000,1000_QL80_.jpg" class="card-img-top" alt="Clean Code">
+                            <div class="card-body text-center d-flex flex-column">
+                                <h6 class="fw-bold text-dark mb-1">Clean Code</h6>
+                                <div class="mt-auto">
+                                    <span class="badge bg-danger rounded-pill">JÁ RESERVADO</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <div class="card h-100 card-livro shadow-sm">
+                            <img src="img/java.png" class="card-img-top" alt="Java How to Program">
+                            <div class="card-body text-center d-flex flex-column">
+                                <h6 class="fw-bold text-dark mb-1 text-truncate">Java: Como Programar</h6>
+                                <p class="small text-muted mb-3">1 unidade</p>
+                                <button class="btn btn-primary btn-sm w-100 btn-reservar mt-auto btn-acao-reservar">Reservar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </div>
     </div>
+
+    <!-- Widget do Chatbot com Ícone Moderno -->
+    <div id="chat-widget-container">
+        <button id="chat-toggle-btn" title="Falar com Bibliotecário Virtual">
+            <i class="bi bi-chat-dots-fill"></i>
+        </button>
+        <div id="chat-box" style="display: none;">
+            <div id="chat-header">
+                <span>Bibliotecário Virtual</span>
+                <button id="chat-close-btn">&times;</button>
+            </div>
+            <div id="chat-messages"></div>
+            <div id="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Digite sua dúvida..." />
+                <button id="chat-send-btn">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        #chat-widget-container { position: fixed; bottom: 25px; right: 25px; z-index: 9999; font-family: sans-serif; }
+        #chat-toggle-btn { background: linear-gradient(135deg, #031330 0%, #1e3a8a 100%); color: white; border: none; border-radius: 50%; width: 60px; height: 60px; font-size: 24px; cursor: pointer; box-shadow: 0 6px 16px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+        #chat-toggle-btn:hover { transform: scale(1.05); }
+        #chat-box { width: 320px; height: 420px; background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; position: absolute; bottom: 75px; right: 0; }
+        #chat-header { background: #031330; color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+        #chat-close-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
+        #chat-messages { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; font-size: 14px; background: #fafafa; }
+        #chat-input-area { display: flex; padding: 10px; border-top: 1px solid #ddd; background: #fff; }
+        #chat-input { flex: 1; padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; outline: none; font-size: 14px; }
+        #chat-send-btn { background: #031330; color: white; border: none; padding: 8px 14px; margin-left: 6px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .msg-user { align-self: flex-end; background: #e3f2fd; color: #0d47a1; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 13px; }
+        .msg-bot { align-self: flex-start; background: #f1f1f1; color: #333; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 13px; }
+    </style>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Widget do Chatbot -->
-<div id="chat-widget-container">
-    <button id="chat-toggle-btn">💬</button>
-    <div id="chat-box" style="display: none;">
-        <div id="chat-header">
-            <span>Bibliotecário Virtual</span>
-            <button id="chat-close-btn">&times;</button>
-        </div>
-        <div id="chat-messages"></div>
-        <div id="chat-input-area">
-            <input type="text" id="chat-input" placeholder="Digite sua dúvida..." />
-            <button id="chat-send-btn">Enviar</button>
-        </div>
-    </div>
-</div>
+    <script src="chat.js"></script>
 
-<style>
-#chat-widget-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: sans-serif; }
-#chat-toggle-btn { background-color: #1a237e; color: white; border: none; border-radius: 50%; width: 60px; height: 60px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
-#chat-box { width: 300px; height: 400px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; flex-direction: column; overflow: hidden; position: absolute; bottom: 70px; right: 0; }
-#chat-header { background: #1a237e; color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
-#chat-close-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; }
-#chat-messages { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
-#chat-input-area { display: flex; padding: 10px; border-top: 1px solid #ddd; background: #f9f9f9; }
-#chat-input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; outline: none; }
-#chat-send-btn { background: #1a237e; color: white; border: none; padding: 8px 12px; margin-left: 5px; border-radius: 4px; cursor: pointer; }
-.msg-user { align-self: flex-end; background: #e3f2fd; padding: 6px 10px; border-radius: 6px; max-width: 80%; }
-.msg-bot { align-self: flex-start; background: #f1f1f1; padding: 6px 10px; border-radius: 6px; max-width: 80%; }
-</style>
-<script src="chat.js"></script>
+    <!-- SDK do Supabase e Lógica de Navegação Unificada -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://axeyrwilhvbzlfukivhu.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4ZXlyd2lsaHZiemxmdWtpdmh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NDE0OTYsImV4cCI6MjA5NDExNzQ5Nn0.8-hLkiSR6BPck-DtkiZiwMA5KRtfHUhjN61g4QPE68o';
+        const { createClient } = supabase;
+        const windowSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        window.supabase = windowSupabase;
 
-<!-- SDK do Supabase e o script de redirecionamento do perfil -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-    // Inicialização do Supabase (substitua pelas suas chaves reais)
-    const SUPABASE_URL = 'SUA_URL_DO_SUPABASE_AQUI';
-    const SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON_AQUI';
-    const { createClient } = supabase;
-    const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    window.supabase = _supabase;
+        // Função unificada para checar papel e redirecionar para o perfil correto
+        async function irParaPerfil(e) {
+            e.preventDefault();
+            const { data: { session } } = await window.supabase.auth.getSession();
+            
+            if (!session) {
+                alert("Sessão expirada. Faça login novamente.");
+                window.location.href = "index.html";
+                return;
+            }
 
-    // Lógica inteligente para o botão "Meu Perfil"
-    document.getElementById('btnMeuPerfil').addEventListener('click', async function(e) {
-        e.preventDefault();
+            const { data: perfil, error } = await window.supabase
+                .from('usuarios')
+                .select('papel')
+                .eq('id', session.user.id)
+                .single();
 
-        // Pega a sessão ativa do usuário logado
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-            alert("Sessão expirada. Faça login novamente.");
-            window.location.href = "index.html";
-            return;
+            if (error || !perfil) {
+                alert("Erro ao identificar o perfil do usuário.");
+                return;
+            }
+
+            if (perfil.papel === 'aluno') {
+                window.location.href = "perfil-aluno.html";
+            } else if (perfil.papel === 'professor') {
+                window.location.href = "perfil-professor.html";
+            } else {
+                alert("Acesso não autorizado.");
+            }
         }
 
-        // Consulta o papel exato do usuário na tabela 'usuarios' do Supabase
-        const { data: perfil, error } = await supabase
-            .from('usuarios')
-            .select('papel')
-            .eq('id', session.user.id)
-            .single();
+        // Atribui o evento aos botões de perfil (topo e barra lateral)
+        document.getElementById('btnMeuPerfil').addEventListener('click', irParaPerfil);
+        document.getElementById('sidebarMeuPerfil').addEventListener('click', irParaPerfil);
 
-        if (error || !perfil) {
-            alert("Erro ao identificar o perfil do usuário.");
-            return;
-        }
-
-        // Direciona para a página correspondente baseada no banco de dados
-        if (perfil.papel === 'aluno') {
-            window.location.href = "perfil-aluno.html";
-        } 
-        else if (perfil.papel === 'professor') {
-            window.location.href = "perfil-professor.html";
-        } 
-        else {
-            alert("Acesso não autorizado para esta área de perfil.");
-        }
-    });
-</script>
-
+        // Ação temporária para os botões de "Reservar" não ficarem mudos
+        document.querySelectorAll('.btn-acao-reservar').forEach(btn => {
+            btn.addEventListener('click', () => {
+                alert("Solicitação de reserva enviada com sucesso! Acompanhe o status no balcão.");
+            });
+        });
+    </script>
 </body>
 </html>
