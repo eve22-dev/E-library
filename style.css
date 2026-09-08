@@ -89,3 +89,11 @@ body:has(.profile-header) {
     padding: 10px 30px;
     font-weight: 600;
 }
+
+.sidebar { 
+    min-height: 100vh; 
+    background: linear-gradient(180deg, #1e3a8a 0%, #dc3545 100%); 
+    color: white; 
+    position: fixed; 
+    width: 260px; 
+}
