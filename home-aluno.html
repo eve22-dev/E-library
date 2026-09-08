@@ -22,7 +22,8 @@
             left: 0;
             height: 100vh;
             width: 80px;
-            background: linear-gradient(180deg, #021341 40%, #dc3545 100%);            display: flex;
+            background: linear-gradient(180deg, #021341 40%, #dc3545 100%);
+            display: flex;
             flex-direction: column;
             align-items: center;
             padding-top: 20px;
@@ -116,7 +117,8 @@
         <a href="home-aluno.html" class="sidebar-item active" title="Home">
             <i class="bi bi-house-door-fill"></i>
         </a>
-        <a href="#secao-emprestimos" class="sidebar-item" title="Meus Empréstimos">
+        <!-- AQUI: O link do relógio agora aponta para a página correta -->
+        <a href="meus-emprestimos.html" class="sidebar-item" title="Meus Empréstimos">
             <i class="bi bi-clock-history"></i>
         </a>
         <a href="#secao-catalogo" class="sidebar-item" title="Catálogo de Livros">
@@ -187,18 +189,18 @@
                         </div>
                     </div>
 
+                    <!-- AQUI: O card do Clean Code agora está com o botão normal para testar a reserva -->
                     <div class="col-6 col-md-4 col-lg-3">
-                        <div class="card h-100 card-livro shadow-sm opacity-75">
+                        <div class="card h-100 card-livro shadow-sm">
                             <img src="https://m.media-amazon.com/images/I/41zoxjP9lcL._AC_UF1000,1000_QL80_.jpg" class="card-img-top" alt="Clean Code">
                             <div class="card-body text-center d-flex flex-column">
                                 <h6 class="fw-bold text-dark mb-1">Clean Code</h6>
-                                <div class="mt-auto">
-                                    <span class="badge bg-danger rounded-pill">JÁ RESERVADO</span>
-                                </div>
+                                <p class="small text-muted mb-3">3 unidades</p>
+                                <button class="btn btn-primary btn-sm w-100 btn-reservar mt-auto btn-acao-reservar">Reservar</button>
                             </div>
                         </div>
                     </div>
-
+                
                     <div class="col-6 col-md-4 col-lg-3">
                         <div class="card h-100 card-livro shadow-sm">
                             <img src="img/java.png" class="card-img-top" alt="Java How to Program">
@@ -295,10 +297,45 @@
         document.getElementById('btnMeuPerfil').addEventListener('click', irParaPerfil);
         document.getElementById('sidebarMeuPerfil').addEventListener('click', irParaPerfil);
 
-        // Ação temporária para os botões de "Reservar" não ficarem mudos
+        // AQUI: Ação de Reservar conectada ao Supabase com alteração visual imediata
         document.querySelectorAll('.btn-acao-reservar').forEach(btn => {
-            btn.addEventListener('click', () => {
-                alert("Solicitação de reserva enviada com sucesso! Acompanhe o status no balcão.");
+            btn.addEventListener('click', async (e) => {
+                const card = e.target.closest('.card-livro');
+                const tituloLivro = card.querySelector('h6').textContent;
+                const btnClicado = e.target; 
+
+                const { data: { session } } = await window.supabase.auth.getSession();
+                if (!session) {
+                    alert("Você precisa estar logado para reservar um livro.");
+                    window.location.href = "index.html";
+                    return;
+                }
+
+                // Insere no banco
+                const { error } = await window.supabase
+                    .from('emprestimos')
+                    .insert([
+                        { 
+                            user_id: session.user.id, 
+                            status: 'ativo',
+                            data_retirada: new Date().toISOString().split('T')[0],
+                            data_prevista: new Date(Date.now() + 14*24*60*60*1000).toISOString().split('T')[0]
+                        }
+                    ]);
+
+                if (error) {
+                    console.error("Erro ao reservar:", error);
+                    alert("Erro ao realizar a reserva. Tente novamente.");
+                    return;
+                }
+
+                // Efeito visual imediato: transforma o botão
+                btnClicado.textContent = 'JÁ RESERVADO';
+                btnClicado.classList.remove('btn-primary', 'btn-reservar');
+                btnClicado.classList.add('btn-danger', 'disabled'); 
+                btnClicado.disabled = true;
+
+                alert(`Livro "${tituloLivro}" reservado com sucesso!`);
             });
         });
     </script>
