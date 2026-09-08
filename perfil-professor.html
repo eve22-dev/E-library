@@ -4,73 +4,93 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>e-library | Perfil do Professor</title>
-    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #f8f9fa; }
+        .profile-header { background: linear-gradient(135deg, #0b2c85 3%, #8f0e0e 100%); color: white; padding: 40px 0; text-align: center; }
+        .avatar-wrapper i { font-size: 5rem; color: #fff; }
+        .info-card { border-radius: 15px; }
+        .label-custom { font-size: 0.85rem; color: #6c757d; font-weight: 600; text-transform: uppercase; }
+        .value-custom { font-size: 1.1rem; font-weight: 500; color: #031330; }
+    </style>
 </head>
 <body> 
 
-<div class="profile-header d-flex flex-column align-items-center justify-content-center">
-    <h2 class="fw-bold mb-3">Painel do Usuário</h2> 
-    <div class="avatar-wrapper shadow">
-        <i class="bi bi-mortarboard-fill"></i>
+<div class="profile-header d-flex flex-column align-items-center justify-content-center pb-5">
+    <h2 class="fw-bold mb-3">Painel do Docente</h2> 
+    <div class="avatar-wrapper mb-2">
+        <i class="bi bi-mortarboard-fill" style="font-size: 5rem; color: #fff;"></i>
     </div>
+    <!-- O nome e o subtítulo agora ficam aqui dentro, com fonte branca -->
+    <h3 class="fw-bold text-white mb-0" id="nomeProfessor">Carregando...</h3>
+    <p class="text-white-50">Corpo Docente</p>
 </div>
 
-<div class="container text-center mb-5">
-    <div class="mt-2">
-        <h3 class="fw-bold text-dark mb-0" id="nomeProfessor">Professor(a)</h3>
-        <p class="text-muted">Docente / Pesquisador(a)</p>
-    </div>
-
-    <div class="row mt-4 justify-content-center">
+<!-- O card com sombra sobe sobrepondo o degradê -->
+<div class="container text-center mb-5" style="margin-top: -40px;">
+    <div class="row justify-content-center">
         <div class="col-md-8 col-lg-7">
-            <div class="card info-card shadow-sm p-4 border-0 rounded-4">
+            <div class="card info-card shadow-lg p-4 border-0 rounded-4">
                 <div class="row g-4 text-start">
                     <div class="col-md-6">
-                        <label class="label-custom d-block">Departamento</label>
-                        <span class="value-custom">Tecnologia da Informação</span>
+                        <label class="label-custom d-block">Departamento / Curso</label>
+                        <span class="value-custom" id="deptoProfessor">Carregando...</span>
                     </div>
                     <div class="col-md-6">
                         <label class="label-custom d-block">E-mail Institucional</label>
-                        <span class="value-custom" id="emailProfessor">professor@elibrary.com.br</span>
+                        <span class="value-custom" id="emailProfessor">Carregando...</span>
                     </div>
-                    <div class="col-md-6">
-                        <label class="label-custom d-block text-uppercase small fw-bold text-muted">Categoria de Acesso</label>
-                        <span class="badge bg-primary rounded-pill px-3">Corpo Docente</span>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="label-custom d-block text-uppercase small fw-bold text-muted">Privilégio de Empréstimo</label>
-                        <span class="value-custom">Prazo estendido (Até 8 livros)</span>
+                    <div class="col-12 mt-3">
+                        <label class="label-custom d-block mb-1">Privilégio de Empréstimo</label>
+                        <span class="badge bg-primary rounded-pill px-3 py-2">Prazo Estendido</span>
                     </div>
                 </div>
                 
                 <hr class="my-4 opacity-25">
 
                 <div class="d-flex justify-content-center gap-3">
-                    <a href="home-aluno.html" class="btn btn-outline-primary rounded-pill px-4">Acessar Acervo</a>
-                    <button id="btnLogout" class="btn btn-outline-danger rounded-pill px-4">Sair</button>
+                    <a href="home-aluno.html" class="btn btn-outline-primary rounded-pill px-5">Acessar Acervo</a>
+                    <button id="btnLogout" class="btn btn-outline-danger rounded-pill px-5">Sair</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Scripts de Integração e Proteção -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="auth-guard.js"></script>
 <script>
-    // Restringe estritamente para o papel 'professor'
-    verificarAcesso(['professor']);
+    const SUPABASE_URL = 'https://axeyrwilhvbzlfukivhu.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4ZXlyd2lsaHZiemxmdWtpdmh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NDE0OTYsImV4cCI6MjA5NDExNzQ5Nn0.8-hLkiSR6BPck-DtkiZiwMA5KRtfHUhjN61g4QPE68o';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Botão de Sair
+    async function carregarPerfil() {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) {
+            window.location.href = "index.html";
+            return;
+        }
+
+        const { data: usuario } = await supabaseClient
+            .from('usuarios')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+        if (usuario) {
+            document.getElementById('nomeProfessor').textContent = usuario.nome;
+            document.getElementById('emailProfessor').textContent = usuario.email;
+            document.getElementById('deptoProfessor').textContent = usuario.curso || 'Departamento Geral';
+        }
+    }
+
     document.getElementById('btnLogout').addEventListener('click', async () => {
-        await supabase.auth.signOut();
+        await supabaseClient.auth.signOut();
         window.location.href = 'index.html';
     });
-</script>
 
+    window.addEventListener('DOMContentLoaded', carregarPerfil);
+</script>
 </body>
 </html>
