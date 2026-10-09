@@ -3,64 +3,73 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
 
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
+    const btnSubmit = document.querySelector('button[type="submit"]');
     
-    // Pega qual opção o usuário marcou no botão de seleção (aluno ou funcionario)
-    const tipoSelecionado = document.querySelector('input[name="userType"]:checked');
-
-    if (!email || !password || !tipoSelecionado) {
-        alert("Por favor, preencha todos os campos e selecione o tipo de usuário.");
+    if (!email || !password) {
+        alert("Por favor, preencha todos os campos.");
         return;
     }
 
-    const tipoUsuario = tipoSelecionado.value;
-    console.log(`Autenticando ${tipoUsuario}...`);
+    // Feedback visual de carregamento
+    btnSubmit.disabled = true;
+    btnSubmit.innerText = 'Autenticando...';
 
     try {
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        // 1. Faz o login na tabela auth.users do Supabase
+        const { data: authData, error: authError } = await window.supabase.auth.signInWithPassword({
             email: email,
             password: password,
         });
 
         if (authError) {
             alert("Erro ao entrar: " + authError.message);
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = 'Entrar';
             return;
         }
 
-        const { data: perfil, error: perfilError } = await supabase
+        const userId = authData.user.id;
+
+        // 2. Busca o papel (role) na sua tabela 'usuarios'
+        const { data: perfil, error: perfilError } = await window.supabase
             .from('usuarios')
             .select('papel')
-            .eq('id', authData.user.id)
+            .eq('id', userId)
             .single();
 
         if (perfilError || !perfil) {
             alert("Perfil não encontrado na base de dados do sistema.");
-            await supabase.auth.signOut();
+            await window.supabase.auth.signOut();
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = 'Entrar';
             return;
         }
 
-        if (tipoUsuario === "aluno") {
-            if (perfil.papel !== 'aluno' && perfil.papel !== 'professor') {
-                alert("Acesso negado! Este e-mail não possui permissão para acessar a área de docentes.");
-                await supabase.auth.signOut();
-                return;
-            }
+        const papel = perfil.papel;
+
+        // 3. Salva a role e os tokens no frontend para usar nas outras telas e nas chamadas do backend
+        localStorage.setItem('userRole', papel);
+        localStorage.setItem('userId', userId);
+        localStorage.setItem('authToken', authData.session.access_token);
+
+        // 4. Roteamento Inteligente baseado EXCLUSIVAMENTE no banco de dados
+        if (papel === 'aluno' || papel === 'professor') {
             window.location.href = "home-aluno.html";
         } 
-        else if (tipoUsuario === "funcionario") {
-            if (perfil.papel === 'bibliotecario') {
-                window.location.href = "admin-funcionario.html";
-            } 
-            else if (perfil.papel === 'professor') {
-                window.location.href = "home-aluno.html";
-            }
-            else {
-                alert("Acesso negado! Esta área é restrita para o bibliotecário.");
-                await supabase.auth.signOut();
-            }
+        else if (papel === 'bibliotecario') {
+            window.location.href = "admin-funcionario.html";
+        } 
+        else {
+            alert("Acesso negado! Papel de usuário desconhecido.");
+            await window.supabase.auth.signOut();
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = 'Entrar';
         }
 
     } catch (err) {
         console.error("Erro inesperado no login:", err);
         alert("Ocorreu um erro ao processar o login. Tente novamente.");
+        btnSubmit.disabled = false;
+        btnSubmit.innerText = 'Entrar';
     }
 });

@@ -73,11 +73,15 @@
             letter-spacing: 1px; 
         }
 
-        .card-img-top {
-            height: 250px; 
-            object-fit: contain; 
-            padding: 15px;
-            background-color: #fff;
+        /* Estilos do Card Dinâmico */
+        .card-img-placeholder {
+            height: 200px;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            color: #adb5bd;
         }
 
         .card-livro { 
@@ -117,7 +121,6 @@
         <a href="home-aluno.html" class="sidebar-item active" title="Home">
             <i class="bi bi-house-door-fill"></i>
         </a>
-        <!-- AQUI: O link do relógio agora aponta para a página correta -->
         <a href="meus-emprestimos.html" class="sidebar-item" title="Meus Empréstimos">
             <i class="bi bi-clock-history"></i>
         </a>
@@ -165,55 +168,38 @@
 
             <section id="secao-catalogo">
                 <h5 class="fw-bold mb-4 text-secondary text-uppercase small"><i class="bi bi-grid-fill me-2"></i>Catálogo Disponível</h5>
-                <div class="row g-4 align-items-stretch">
-                    
-<div class="col-6 col-md-4 col-lg-3">
-    <div class="card h-100 card-livro shadow-sm">
-        <img src="img/javaoca.png" class="card-img-top" alt="Capa Java OCA">
-        <div class="card-body text-center d-flex flex-column">
-            <h6 class="fw-bold text-dark mb-1 text-truncate">Java OCA 1Z0-808</h6>
-            <p class="small text-muted mb-3">5 unidades</p>
-            <button class="btn btn-primary btn-sm w-100 btn-reservar mt-auto btn-acao-reservar" data-livro-id="fb2f0514-10e7-4a1c-83e7-50d2eb7a316f">Reservar</button>
-        </div>
-    </div>
-</div>
+                
+                <!-- Barra de Pesquisa com Filtros do Cruzerio do Sul -->
+                <div class="input-group mb-4 shadow-sm rounded-3">
+                    <select class="form-select" id="select-filtro" style="max-width: 300px; background-color: #f8f9fa;">
+                        <option value="titulo">Termo livre</option>
+                        <option disabled>--------</option>
+                        <option value="titulo">Título (palavra em qualquer posição)</option>
+                        <option value="titulo">Titulo</option>
+                        <option value="titulo">Série</option>
+                        <option disabled>--------</option>
+                        <option value="autor">Autor (palavra em qualquer posição)</option>
+                        <option value="autor">Autor</option>
+                        <option disabled>--------</option>
+                        <option value="assunto">Assunto (palavra em qualquer posição)</option>
+                        <option value="assunto">Assunto</option>
+                        <option disabled>--------</option>
+                        <option value="editora" selected>Editora</option>
+                        <option value="isbn">ISBN</option>
+                        <option value="codigo_acervo">Código do Acervo</option>
+                        <option value="codigo_exemplar">Código do Exemplar</option>
+                        <option value="num_patrimonio">Num. patrimônio exata</option>
+                        <option value="area_conhecimento">Área de conhecimento</option>
+                    </select>
+                    <input type="text" class="form-control" id="input-termo" placeholder="Digite sua pesquisa aqui...">
+                    <button class="btn btn-primary px-4" type="button" onclick="buscarLivros()">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                </div>
 
-<!-- Livro 2: Guia de MySQL -->
-<div class="col-6 col-md-4 col-lg-3">
-    <div class="card h-100 card-livro shadow-sm">
-        <img src="img/sql.png" class="card-img-top" alt="Capa Guia de MySQL">
-        <div class="card-body text-center d-flex flex-column">
-            <h6 class="fw-bold text-dark mb-1 text-truncate">Guia de MySQL</h6>
-            <p class="small text-muted mb-3">2 unidades</p>
-            <button class="btn btn-primary btn-sm w-100 btn-reservar mt-auto btn-acao-reservar" data-livro-id="d80517e1-c129-4e41-820b-4702f2c054f2">Reservar</button>
-        </div>
-    </div>
-</div>
-
-<!-- Livro 3: Clean Code -->
-<div class="col-6 col-md-4 col-lg-3">
-    <div class="card h-100 card-livro shadow-sm">
-        <img src="https://m.media-amazon.com/images/I/41zoxjP9lcL._AC_UF1000,1000_QL80_.jpg" class="card-img-top" alt="Clean Code">
-        <div class="card-body text-center d-flex flex-column">
-            <h6 class="fw-bold text-dark mb-1">Clean Code</h6>
-            <p class="small text-muted mb-3">3 unidades</p>
-            <button class="btn btn-primary btn-sm w-100 btn-reservar mt-auto btn-acao-reservar" data-livro-id="44abc54d-1e3d-4ddd-91c0-6d749daba6fc">Reservar</button>
-        </div>
-    </div>
-</div>
-
-<!-- Livro 4: Java: Como Programar -->
-<div class="col-6 col-md-4 col-lg-3">
-    <div class="card h-100 card-livro shadow-sm">
-        <img src="img/java.png" class="card-img-top" alt="Java How to Program">
-        <div class="card-body text-center d-flex flex-column">
-            <h6 class="fw-bold text-dark mb-1 text-truncate">Java: Como Programar</h6>
-            <p class="small text-muted mb-3">1 unidade</p>
-            <button class="btn btn-primary btn-sm w-100 btn-reservar mt-auto btn-acao-reservar" data-livro-id="d2ae8db8-1158-4c3e-983a-62cd4f92907b">Reservar</button>
-        </div>
-    </div>
-</div>
-
+                <!-- Container VAZIO onde os livros reais serão inseridos pelo JavaScript -->
+                <div id="lista-livros-dinamica" class="row g-4 align-items-stretch">
+                    <!-- Os cards dinâmicos vão entrar aqui -->
                 </div>
             </section>
         </div>
@@ -255,91 +241,120 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="chat.js"></script>
 
-    <!-- SDK do Supabase e Lógica de Navegação Unificada -->
+    <!-- SDK do Supabase e Lógica de Busca Dinâmica -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const SUPABASE_URL = 'https://axeyrwilhvbzlfukivhu.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4ZXlyd2lsaHZiemxmdWtpdmh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NDE0OTYsImV4cCI6MjA5NDExNzQ5Nn0.8-hLkiSR6BPck-DtkiZiwMA5KRtfHUhjN61g4QPE68o';
-        const { createClient } = supabase;
-        const windowSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const windowSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         window.supabase = windowSupabase;
 
-        // Função unificada para checar papel e redirecionar para o perfil correto
+        // Navegação de Perfil
         async function irParaPerfil(e) {
             e.preventDefault();
             const { data: { session } } = await window.supabase.auth.getSession();
-            
             if (!session) {
                 alert("Sessão expirada. Faça login novamente.");
                 window.location.href = "index.html";
                 return;
             }
-
-            const { data: perfil, error } = await window.supabase
-                .from('usuarios')
-                .select('papel')
-                .eq('id', session.user.id)
-                .single();
-
-            if (error || !perfil) {
-                alert("Erro ao identificar o perfil do usuário.");
-                return;
-            }
-
-            if (perfil.papel === 'aluno') {
-                window.location.href = "perfil-aluno.html";
-            } else if (perfil.papel === 'professor') {
-                window.location.href = "perfil-professor.html";
-            } else {
-                alert("Acesso não autorizado.");
-            }
+            const { data: perfil } = await window.supabase.from('usuarios').select('papel').eq('id', session.user.id).single();
+            if (perfil?.papel === 'aluno') window.location.href = "perfil-aluno.html";
+            else if (perfil?.papel === 'professor') window.location.href = "perfil-professor.html";
+            else alert("Acesso não autorizado.");
         }
-
-        // Atribui o evento aos botões de perfil (topo e barra lateral)
         document.getElementById('btnMeuPerfil').addEventListener('click', irParaPerfil);
         document.getElementById('sidebarMeuPerfil').addEventListener('click', irParaPerfil);
 
-        // AQUI: Ação de Reservar conectada ao Supabase com alteração visual imediata
-        document.querySelectorAll('.btn-acao-reservar').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const card = e.target.closest('.card-livro');
-                const tituloLivro = card.querySelector('h6').textContent;
-                const btnClicado = e.target; 
+        // FUNÇÃO DE BUSCA EM TEMPO REAL NO BACKEND
+        async function buscarLivros() {
+            const filtro = document.getElementById('select-filtro').value;
+            const termo = document.getElementById('input-termo').value;
+            const container = document.getElementById('lista-livros-dinamica');
 
-                const { data: { session } } = await window.supabase.auth.getSession();
-                if (!session) {
-                    alert("Você precisa estar logado para reservar um livro.");
-                    window.location.href = "index.html";
+            container.innerHTML = '<div class="col-12 text-center text-muted mt-4"><div class="spinner-border text-primary mb-2" role="status"></div><p>Buscando no acervo...</p></div>';
+
+            try {
+                // Aqui bate na API Spring Boot que criamos: LivroController.java
+                const url = `http://localhost:8080/api/livros/pesquisa?filtro=${filtro}&termo=${encodeURIComponent(termo)}`;
+                const resposta = await fetch(url);
+                
+                if (!resposta.ok) throw new Error("Falha na conexão com o servidor Java");
+                const livros = await resposta.json();
+                
+                container.innerHTML = ''; // Limpa o loading
+
+                if (livros.length === 0) {
+                    container.innerHTML = '<div class="col-12 text-center text-muted mt-4"><p>Nenhum livro encontrado no momento.</p></div>';
                     return;
                 }
 
-                // Insere no banco
-                const { error } = await window.supabase
-                    .from('emprestimos')
-                    .insert([
-                        { 
-                            user_id: session.user.id, 
-                            status: 'ativo',
-                            data_retirada: new Date().toISOString().split('T')[0],
-                            data_prevista: new Date(Date.now() + 14*24*60*60*1000).toISOString().split('T')[0]
-                        }
-                    ]);
+                // Renderiza os livros reais na tela
+                livros.forEach(livro => {
+                    const statusReserva = livro.qtdDisponivel > 0 ? 'Reservar' : 'Indisponível';
+                    const btnClass = livro.qtdDisponivel > 0 ? 'btn-primary btn-reservar' : 'btn-secondary disabled';
+                    
+                    const cardHTML = `
+                        <div class="col-6 col-md-4 col-lg-3">
+                            <div class="card h-100 card-livro shadow-sm">
+                                <div class="card-img-placeholder">
+                                    <i class="bi bi-journal-text"></i>
+                                </div>
+                                <div class="card-body text-center d-flex flex-column">
+                                    <h6 class="fw-bold text-dark mb-1 text-truncate" title="${livro.titulo}">${livro.titulo}</h6>
+                                    <p class="small text-muted mb-1">${livro.autor}</p>
+                                    <p class="small text-muted mb-3">${livro.qtdDisponivel} unidades</p>
+                                    <button class="btn btn-sm w-100 mt-auto ${btnClass}" 
+                                        onclick="efetuarReserva('${livro.id}', '${livro.titulo}', this)"
+                                        ${livro.qtdDisponivel <= 0 ? 'disabled' : ''}>
+                                        ${statusReserva}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += cardHTML;
+                });
+            } catch (error) {
+                console.error(error);
+                container.innerHTML = '<div class="col-12 text-center text-danger mt-4"><p>Erro ao conectar com o banco de dados da biblioteca.</p></div>';
+            }
+        }
 
-                if (error) {
-                    console.error("Erro ao reservar:", error);
-                    alert("Erro ao realizar a reserva. Tente novamente.");
-                    return;
-                }
+        // FUNÇÃO DE RESERVA DINÂMICA
+        async function efetuarReserva(livroId, tituloLivro, btnClicado) {
+            const { data: { session } } = await window.supabase.auth.getSession();
+            if (!session) {
+                alert("Você precisa estar logado para reservar um livro.");
+                window.location.href = "index.html";
+                return;
+            }
 
-                // Efeito visual imediato: transforma o botão
-                btnClicado.textContent = 'JÁ RESERVADO';
-                btnClicado.classList.remove('btn-primary', 'btn-reservar');
-                btnClicado.classList.add('btn-danger', 'disabled'); 
-                btnClicado.disabled = true;
+            const { error } = await window.supabase
+                .from('emprestimos')
+                .insert([{ 
+                    user_id: session.user.id, 
+                    livro_id: livroId,
+                    status: 'ativo',
+                    data_retirada: new Date().toISOString().split('T')[0],
+                    data_prevista: new Date(Date.now() + 14*24*60*60*1000).toISOString().split('T')[0]
+                }]);
 
-                alert(`Livro "${tituloLivro}" reservado com sucesso!`);
-            });
-        });
+            if (error) {
+                console.error("Erro ao reservar:", error);
+                alert("Erro ao realizar a reserva. Tente novamente.");
+                return;
+            }
+
+            btnClicado.textContent = 'JÁ RESERVADO';
+            btnClicado.className = 'btn btn-sm w-100 mt-auto btn-danger disabled';
+            btnClicado.disabled = true;
+
+            alert(`Livro "${tituloLivro}" reservado com sucesso!`);
+        }
+
+        // Carregar livros ao iniciar a página
+        document.addEventListener('DOMContentLoaded', buscarLivros);
     </script>
 </body>
 </html>

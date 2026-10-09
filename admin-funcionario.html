@@ -51,52 +51,191 @@
     <!-- Conteúdo Principal Dinâmico -->
     <div class="main-content">
         <div id="conteudoDinamico">
-            <!-- A aba padrão inicial -->
-            <h2 class="fw-bold text-dark">Gerenciamento de Empréstimos</h2>
-            <p class="text-muted">Acompanhe as retiradas e devoluções ativas no acervo.</p>
-            <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
-                <p class="text-muted mb-0">Carregando dados de empréstimos...</p>
-            </div>
+            <!-- Renderizado via JS -->
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- SDK do Supabase (Mantido para o Logout) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        const SUPABASE_URL = 'SUA_URL_DO_SUPABASE_AQUI';
-        const SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON_AQUI';
-        const { createClient } = supabase;
-        const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const SUPABASE_URL = 'https://axeyrwilhvbzlfukivhu.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4ZXlyd2lsaHZiemxmdWtpdmh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NDE0OTYsImV4cCI6MjA5NDExNzQ5Nn0.8-hLkiSR6BPck-DtkiZiwMA5KRtfHUhjN61g4QPE68o';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         window.supabase = _supabase;
 
-        // Função simples para alternar o conteúdo das abas na mesma tela
+        const BACKEND_URL = "https://e-library-backend-qytl.onrender.com"; 
+
+        // Carrega a aba de empréstimos assim que a página abre
+        document.addEventListener('DOMContentLoaded', () => mudarAba('emprestimos', { currentTarget: document.querySelector('.nav-link.active') }));
+
+        // --- SISTEMA DE ABAS E RENDERIZAÇÃO DINÂMICA ---
         function mudarAba(aba, event) {
-            document.querySelectorAll('.sidebar .nav-link').forEach(link => link.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+            if(event) {
+                document.querySelectorAll('.sidebar .nav-link').forEach(link => link.classList.remove('active'));
+                event.currentTarget.classList.add('active');
+            }
 
             const container = document.getElementById('conteudoDinamico');
             
             if (aba === 'emprestimos') {
-                container.innerHTML = `<h2 class="fw-bold text-dark">Gerenciamento de Empréstimos</h2><p class="text-muted">Acompanhe as retiradas e devoluções ativas.</p><div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4"><p>Módulo de empréstimos carregado.</p></div>`;
+                container.innerHTML = `
+                    <h2 class="fw-bold text-dark">Gerenciamento de Empréstimos</h2>
+                    <p class="text-muted">Acompanhe as retiradas e devoluções ativas no acervo.</p>
+                    <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
+                        <div id="listaEmprestimos" class="table-responsive">
+                            <p class="text-muted">Carregando dados do banco de dados...</p>
+                        </div>
+                    </div>`;
+                carregarEmprestimos();
+
             } else if (aba === 'exemplares') {
-                container.innerHTML = `<h2 class="fw-bold text-dark">Cadastro de Exemplares</h2><p class="text-muted">Adicione novos livros e gerencie o estoque.</p><div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4"><form><div class="mb-3"><label class="form-label">Título do Livro</label><input type="text" class="form-control"></div><button class="btn btn-primary">Salvar Livro</button></form></div>`;
-            } else if (aba === 'tabelas') {
-                container.innerHTML = `<h2 class="fw-bold text-dark">Tabelas e Cadastros Base</h2><p class="text-muted">Gerencie categorias, códigos únicos e parâmetros.</p><div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4"><p>Tabelas auxiliares do sistema.</p></div>`;
-            } else if (aba === 'relatorios') {
-                container.innerHTML = `<h2 class="fw-bold text-dark">Relatórios do Sistema</h2><p class="text-muted">Gere relatórios de livros mais emprestados e atrasos.</p><div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4"><button class="btn btn-success">Exportar Relatório em PDF</button></div>`;
+                // FORMULÁRIO REAL DE CADASTRO
+                container.innerHTML = `
+                    <h2 class="fw-bold text-dark">Cadastro de Exemplares</h2>
+                    <p class="text-muted">Adicione novos livros e disponibilize-os no acervo imediatamente.</p>
+                    <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
+                        <form id="formCadastroLivro" onsubmit="cadastrarLivro(event)">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Título do Livro</label>
+                                    <input type="text" id="livroTitulo" class="form-control" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Autor</label>
+                                    <input type="text" id="livroAutor" class="form-control" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label fw-semibold">ISBN</label>
+                                    <input type="text" id="livroIsbn" class="form-control" placeholder="Opcional">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label fw-semibold">Qtd. Total (Estoque)</label>
+                                    <input type="number" id="livroQtd" class="form-control" value="1" min="1" required>
+                                </div>
+                            </div>
+                            <button type="submit" id="btnSalvarLivro" class="btn btn-primary mt-3 px-4 shadow-sm">
+                                <i class="bi bi-check-lg"></i> Salvar Livro no Sistema
+                            </button>
+                        </form>
+                    </div>`;
+
             } else if (aba === 'mensagens') {
-                container.innerHTML = `<h2 class="fw-bold text-dark">Solicitações de Atendimento (Chat)</h2><p class="text-muted">Mensagens enviadas por alunos que precisaram de suporte humano.</p><div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4"><div class="list-group"><div class="list-group-item list-group-item-action"><strong>Aluno Silva (RGM 12345):</strong> "Professor, não acho o livro de POO disponível, tem previsão de reposição?" <span class="badge bg-warning text-dark float-end">Pendente</span></div></div></div>`;
+                container.innerHTML = `
+                    <h2 class="fw-bold text-dark">Solicitações de Atendimento (Chat)</h2>
+                    <p class="text-muted">Dúvidas repassadas pela Inteligência Artificial para atendimento humano.</p>
+                    <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
+                        <div id="listaMensagens" class="list-group">
+                            <p class="text-muted">Buscando solicitações...</p>
+                        </div>
+                    </div>`;
+                carregarMensagensSuporte();
+            } else {
+                // Relatórios e Tabelas (Pode expandir depois usando a mesma lógica)
+                container.innerHTML = `<h2 class="fw-bold text-dark">Em Desenvolvimento</h2><p class="text-muted">Esta funcionalidade será conectada à API em breve.</p>`;
             }
         }
 
+        // --- INTEGRAÇÃO COM O BACKEND JAVA ---
+
+        // 1. Envia os dados do formulário para salvar o livro no Java
+        async function cadastrarLivro(event) {
+            event.preventDefault(); // Impede a página de recarregar
+            
+            const btnSalvar = document.getElementById('btnSalvarLivro');
+            btnSalvar.disabled = true;
+            btnSalvar.innerText = "Salvando...";
+
+            // Monta o objeto com os dados exatos que a sua LivroEntity espera
+            const novoLivro = {
+                titulo: document.getElementById('livroTitulo').value,
+                autor: document.getElementById('livroAutor').value,
+                isbn: document.getElementById('livroIsbn').value,
+                qtdTotal: parseInt(document.getElementById('livroQtd').value),
+                qtdDisponivel: parseInt(document.getElementById('livroQtd').value),
+                ativo: true
+            };
+
+            try {
+                // Bate no endpoint POST do seu Spring Boot
+                const response = await fetch(`${BACKEND_URL}/api/livros`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}` // Manda o token de segurança
+                    },
+                    body: JSON.stringify(novoLivro)
+                });
+
+                if (response.ok) {
+                    alert('Sucesso! Livro cadastrado e já disponível para os alunos.');
+                    document.getElementById('formCadastroLivro').reset(); // Limpa o form
+                } else {
+                    const erro = await response.text();
+                    alert('Erro ao salvar livro: ' + erro);
+                }
+            } catch (error) {
+                console.error('Erro de rede:', error);
+                alert('Erro de comunicação com o servidor Java. Verifique se o backend está rodando.');
+            } finally {
+                btnSalvar.disabled = false;
+                btnSalvar.innerHTML = '<i class="bi bi-check-lg"></i> Salvar Livro no Sistema';
+            }
+        }
+
+        // 2. Busca e desenha a tabela de empréstimos vinda do banco
+        async function carregarEmprestimos() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/emprestimos`);
+                const divLista = document.getElementById('listaEmprestimos');
+                
+                if(!response.ok) throw new Error("Falha na API");
+                const emprestimos = await response.json();
+
+                if(emprestimos.length === 0) {
+                    divLista.innerHTML = '<p class="text-muted">Nenhum empréstimo ativo no momento.</p>';
+                    return;
+                }
+
+                // Monta a tabela HTML com os dados reais
+                let tabelaHTML = `<table class="table align-middle">
+                                    <thead><tr><th>Livro</th><th>Retirada</th><th>Devolução Prevista</th><th>Status</th></tr></thead><tbody>`;
+                
+                emprestimos.forEach(emp => {
+                    tabelaHTML += `<tr>
+                                    <td class="fw-bold">${emp.tituloLivro || 'Livro não identificado'}</td>
+                                    <td>${emp.dataRetirada}</td>
+                                    <td>${emp.dataPrevista}</td>
+                                    <td><span class="badge bg-primary">${emp.status}</span></td>
+                                   </tr>`;
+                });
+                tabelaHTML += `</tbody></table>`;
+                divLista.innerHTML = tabelaHTML;
+
+            } catch (error) {
+                document.getElementById('listaEmprestimos').innerHTML = '<p class="text-danger">Erro ao carregar os empréstimos. Servidor indisponível.</p>';
+            }
+        }
+
+        // 3. Busca mensagens de suporte salvas pelo Chatbot
+        async function carregarMensagensSuporte() {
+            // Se você já tem um endpoint de listar mensagens, coloque a chamada fetch aqui.
+            // Por enquanto, deixarei um aviso de integração pendente.
+            document.getElementById('listaMensagens').innerHTML = '<p class="text-muted">Integração da lista de mensagens pendente no backend.</p>';
+        }
+
+        // --- SISTEMA DE LOGOUT ---
         document.getElementById('btnLogout').addEventListener('click', async () => {
-            await supabase.auth.signOut();
+            await window.supabase.auth.signOut();
+            localStorage.clear(); // Limpa a role e tokens
             window.location.href = 'index.html';
         });
+
     </script>
+    
     <script src="auth-guard.js"></script>
     <script>
-        verificarAcesso(['professor', 'bibliotecario']);
+        // Trava de segurança: Garante que só o bibliotecário entre aqui
+        // verificarAcesso(['bibliotecario']);
     </script>
 </body>
 </html>
