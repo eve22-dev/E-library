@@ -9,145 +9,122 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     
     <style>
+        /* VARIÁVEIS PARA ACESSIBILIDADE */
+        :root {
+            --bg-body: #f8f9fa;
+            --text-main: #212529;
+            --bg-card: #ffffff;
+            --bg-nav: #031330;
+            --text-nav: #ffffff;
+            --btn-bg: #031330;
+            --btn-text: #ffffff;
+            --sidebar-gradient: linear-gradient(180deg, #021341 40%, #dc3545 100%);
+        }
+
+        /* TEMA ALTO CONTRASTE */
+        body.alto-contraste {
+            --bg-body: #000000 !important;
+            --text-main: #ffffff !important;
+            --bg-card: #121212 !important;
+            --bg-nav: #000000 !important;
+            --text-nav: #ffff00 !important;
+            --btn-bg: #ffff00 !important;
+            --btn-text: #000000 !important;
+            --sidebar-gradient: #000000 !important;
+        }
+
+        body.alto-contraste * { border-color: #ffff00 !important; }
+        body.alto-contraste .text-muted, body.alto-contraste .text-secondary { color: #dddddd !important; }
+        body.alto-contraste .card, body.alto-contraste .sidebar, body.alto-contraste .navbar-custom { border: 1px solid #ffff00 !important; }
+
+        /* ESTILOS BASE */
+        html { font-size: 16px; transition: font-size 0.3s; }
         body { 
             font-family: 'Poppins', sans-serif; 
-            background-color: #f8f9fa; 
+            background-color: var(--bg-body); 
+            color: var(--text-main);
             overflow-x: hidden;
+            transition: background-color 0.3s, color 0.3s;
         }
 
-        /* Barra Lateral Estilizada */
+        /* SIDEBAR */
         .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            width: 80px;
-            background: linear-gradient(180deg, #021341 40%, #dc3545 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding-top: 20px;
-            z-index: 1000;
-            box-shadow: 3px 0 10px rgba(0,0,0,0.1);
+            position: fixed; top: 0; left: 0; height: 100vh; width: 80px;
+            background: var(--sidebar-gradient);
+            display: flex; flex-direction: column; align-items: center;
+            padding-top: 20px; z-index: 1000; box-shadow: 3px 0 10px rgba(0,0,0,0.1);
         }
 
-        .sidebar .brand-icon {
-            font-size: 1.8rem;
-            color: #fff;
-            margin-bottom: 30px;
-        }
-
+        .sidebar .brand-icon { font-size: 1.8rem; color: #fff; margin-bottom: 30px; }
         .sidebar-item {
-            color: rgba(255,255,255,0.7);
-            font-size: 1.4rem;
-            margin-bottom: 20px;
-            text-decoration: none;
-            transition: all 0.2s;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
+            color: rgba(255,255,255,0.7); font-size: 1.4rem; margin-bottom: 20px;
+            text-decoration: none; transition: all 0.2s; display: flex;
+            justify-content: center; align-items: center; width: 50px; height: 50px; border-radius: 12px;
         }
+        .sidebar-item:hover, .sidebar-item.active { color: #fff; background-color: rgba(255,255,255,0.1); }
 
-        .sidebar-item:hover, .sidebar-item.active {
-            color: #fff;
-            background-color: rgba(255,255,255,0.1);
-        }
+        .main-content { margin-left: 80px; padding: 30px; }
+        .navbar-custom { background-color: var(--bg-nav) !important; box-shadow: 0 2px 10px rgba(0,0,0,0.2); border-radius: 12px; }
+        .navbar-brand { font-weight: 600; letter-spacing: 1px; color: var(--text-nav) !important;}
 
-        /* Conteúdo Principal Ajustado para a Sidebar */
-        .main-content {
-            margin-left: 80px;
-            padding: 30px;
-        }
+        /* CARDS LIVROS E EMPRÉSTIMOS */
+        .card { background-color: var(--bg-card); color: var(--text-main); }
+        .card-img-placeholder { height: 180px; background-color: #e9ecef; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #adb5bd; }
+        .card-livro { transition: transform 0.2s; border: none; border-radius: 15px; overflow: hidden; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); display: flex; flex-direction: column; }
+        .card-livro:hover { transform: translateY(-5px); box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); }
+        .card-livro h6 { color: var(--text-main) !important; }
 
-        .navbar-custom {
-            background-color: #031330 !important;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            border-radius: 12px;
-        }
+        .card-alerta { border-left: 4px solid; border-radius: 8px; margin-bottom: 15px; }
+        .alerta-normal { border-left-color: #198754; } /* Verde - Tudo certo */
+        .alerta-urgente { border-left-color: #dc3545; background-color: #fff5f5; } /* Vermelho - Vence em 3 dias */
 
-        .navbar-brand { 
-            font-weight: 600; 
-            letter-spacing: 1px; 
-        }
-
-        /* Estilos do Card Dinâmico */
-        .card-img-placeholder {
-            height: 200px;
-            background-color: #e9ecef;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 4rem;
-            color: #adb5bd;
-        }
-
-        .card-livro { 
-            transition: transform 0.2s; 
-            border: none; 
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .card-livro:hover { 
-            transform: translateY(-5px); 
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); 
-        }
-
-        .btn-reservar {
-            border-radius: 50px;
-            font-weight: 600;
-            background-color: #031330;
-            border: none;
-        }
-
-        .btn-reservar:hover {
-            background-color: #280d42;
-        }
+        .btn-reservar { border-radius: 50px; font-weight: 600; background-color: var(--btn-bg); color: var(--btn-text); border: none; }
+        .btn-reservar:hover { opacity: 0.8; color: var(--btn-text); }
+        
+        .acessibilidade-menu button { font-weight: 600; }
+        
+        /* CHATBOT WIDGET */
+        #chat-widget-container { position: fixed; bottom: 25px; right: 25px; z-index: 9999; }
+        #chat-toggle-btn { background: linear-gradient(135deg, #031330 0%, #1e3a8a 100%); color: white; border: none; border-radius: 50%; width: 60px; height: 60px; font-size: 24px; cursor: pointer; box-shadow: 0 6px 16px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+        #chat-toggle-btn:hover { transform: scale(1.05); }
     </style>
 </head>
 <body>
 
-    <!-- Barra Lateral -->
-    <div class="sidebar">
-        <div class="brand-icon">
-            <i class="bi bi-book-half"></i>
+    <!-- VLIBRAS -->
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper>
+            <div class="vw-plugin-top-wrapper"></div>
         </div>
-        <a href="home-aluno.html" class="sidebar-item active" title="Home">
-            <i class="bi bi-house-door-fill"></i>
-        </a>
-        <a href="meus-emprestimos.html" class="sidebar-item" title="Meus Empréstimos">
-            <i class="bi bi-clock-history"></i>
-        </a>
-        <a href="#secao-catalogo" class="sidebar-item" title="Catálogo de Livros">
-            <i class="bi bi-grid-fill"></i>
-        </a>
-        <a href="acessibilidade.html" class="sidebar-item" title="Acessibilidade">
-            <i class="bi bi-universal-access-circle"></i>
-        </a>
-        <a href="#" id="sidebarMeuPerfil" class="sidebar-item" title="Meu Perfil">
-            <i class="bi bi-person-circle"></i>
-        </a>
     </div>
 
-    <!-- Conteúdo Principal -->
+    <!-- Barra Lateral (Simplificada) -->
+    <div class="sidebar">
+        <div class="brand-icon"><i class="bi bi-book-half"></i></div>
+        <a href="home-aluno.html" class="sidebar-item active" title="Página Inicial"><i class="bi bi-house-door-fill"></i></a>
+        <a href="meus-emprestimos.html" class="sidebar-item" title="Histórico Completo"><i class="bi bi-journal-bookmark-fill"></i></a>
+        <a href="#" id="sidebarMeuPerfil" class="sidebar-item" title="Meu Perfil"><i class="bi bi-person-circle"></i></a>
+    </div>
+
     <div class="main-content">
         <nav class="navbar navbar-expand-lg navbar-dark navbar-custom mb-4 px-4">
             <div class="container-fluid">
-                <a class="navbar-brand fw-bold" href="#">
-                    Painel do Aluno
-                </a>
-                <div class="ms-auto d-flex align-items-center">
-                    <!-- Botão de Acessibilidade Adicionado Aqui -->
-                    <a class="btn btn-outline-info rounded-pill px-3 fw-bold me-3 border-0" href="acessibilidade.html" title="Página de Acessibilidade" style="color: #63b3ed;">
-                        <i class="bi bi-universal-access-circle fs-5 me-1 align-middle"></i> Acessibilidade
-                    </a>
-                    
+                <a class="navbar-brand fw-bold" href="#">Painel do Aluno</a>
+                <div class="ms-auto d-flex gap-3 align-items-center">
+                    <!-- Menu Acessibilidade -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light rounded-pill px-3 fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-universal-access-circle me-1"></i> Acessibilidade
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow acessibilidade-menu">
+                            <li><button class="dropdown-item" onclick="alterarFonte(1)"><i class="bi bi-zoom-in me-2"></i> Aumentar (A+)</button></li>
+                            <li><button class="dropdown-item" onclick="alterarFonte(-1)"><i class="bi bi-zoom-out me-2"></i> Diminuir (A-)</button></li>
+                            <li><button class="dropdown-item" onclick="alterarFonte(0)"><i class="bi bi-fonts me-2"></i> Padrão (A)</button></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><button class="dropdown-item" onclick="toggleAltoContraste()"><i class="bi bi-circle-half me-2"></i> Alto Contraste</button></li>
+                        </ul>
+                    </div>
                     <a class="btn btn-outline-light rounded-pill px-4 fw-bold" href="#" id="btnMeuPerfil">
                         <i class="bi bi-person-circle me-1"></i> Meu Perfil
                     </a>
@@ -156,213 +133,276 @@
         </nav>
 
         <div class="container-fluid py-2">
-            
-            <section class="mb-5" id="secao-emprestimos">
-                <h5 class="fw-bold mb-3 text-secondary text-uppercase small"><i class="bi bi-clock-history me-2"></i>Seus Empréstimos</h5>
-                <div class="row">
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card border-start border-warning border-4 shadow-sm rounded-3">
-                            <div class="card-body">
-                                <h6 class="card-title fw-bold text-dark mb-1">Clean Code</h6>
-                                <p class="card-text text-muted mb-2 small">Devolução: 20/05/2026</p>
-                                <span class="badge bg-warning text-dark rounded-pill" style="font-size: 0.7rem;">Perto do prazo</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <hr class="my-5 opacity-25">
-
-            <section id="secao-catalogo">
-                <h5 class="fw-bold mb-4 text-secondary text-uppercase small"><i class="bi bi-grid-fill me-2"></i>Catálogo Disponível</h5>
+            <!-- DASHBOARD: Catálogo à esquerda (8 colunas) e Avisos à direita (4 colunas) -->
+            <div class="row g-4">
                 
-                <!-- Barra de Pesquisa com Filtros do Cruzerio do Sul -->
-                <div class="input-group mb-4 shadow-sm rounded-3">
-                    <select class="form-select" id="select-filtro" style="max-width: 300px; background-color: #f8f9fa;">
-                        <option value="titulo">Termo livre</option>
-                        <option disabled>--------</option>
-                        <option value="titulo">Título (palavra em qualquer posição)</option>
-                        <option value="titulo">Titulo</option>
-                        <option value="titulo">Série</option>
-                        <option disabled>--------</option>
-                        <option value="autor">Autor (palavra em qualquer posição)</option>
-                        <option value="autor">Autor</option>
-                        <option disabled>--------</option>
-                        <option value="assunto">Assunto (palavra em qualquer posição)</option>
-                        <option value="assunto">Assunto</option>
-                        <option disabled>--------</option>
-                        <option value="editora" selected>Editora</option>
-                        <option value="isbn">ISBN</option>
-                        <option value="codigo_acervo">Código do Acervo</option>
-                        <option value="codigo_exemplar">Código do Exemplar</option>
-                        <option value="num_patrimonio">Num. patrimônio exata</option>
-                        <option value="area_conhecimento">Área de conhecimento</option>
-                    </select>
-                    <input type="text" class="form-control" id="input-termo" placeholder="Digite sua pesquisa aqui...">
-                    <button class="btn btn-primary px-4" type="button" onclick="buscarLivros()">
-                        <i class="bi bi-search"></i> Buscar
-                    </button>
+                <!-- COLUNA ESQUERDA: CATÁLOGO -->
+                <div class="col-lg-8">
+                    <section id="secao-catalogo">
+                        <h5 class="fw-bold mb-4 text-uppercase small text-secondary"><i class="bi bi-grid-fill me-2"></i>Catálogo Disponível</h5>
+                        
+                        <div class="input-group mb-4 shadow-sm rounded-3">
+                            <select class="form-select" id="select-filtro" style="max-width: 250px;">
+                                <option value="titulo">Título do Livro</option>
+                                <option value="autor">Autor</option>
+                                <option value="editora">Editora</option>
+                                <option value="isbn">ISBN</option>
+                            </select>
+                            <input type="text" class="form-control" id="input-termo" placeholder="Busque no acervo...">
+                            <button class="btn btn-reservar px-4" style="border-radius: 0 6px 6px 0;" type="button" onclick="buscarLivros()">
+                                <i class="bi bi-search"></i> Buscar
+                            </button>
+                        </div>
+
+                        <!-- Lista de Livros -->
+                        <div id="lista-livros-dinamica" class="row g-3 align-items-stretch">
+                            <!-- Inserido via JS -->
+                        </div>
+                    </section>
                 </div>
 
-                <!-- Container VAZIO onde os livros reais serão inseridos pelo JavaScript -->
-                <div id="lista-livros-dinamica" class="row g-4 align-items-stretch">
-                    <!-- Os cards dinâmicos vão entrar aqui -->
+                <!-- COLUNA DIREITA: EMPRÉSTIMOS A VENCER -->
+                <div class="col-lg-4">
+                    <section id="secao-avisos">
+                        <h5 class="fw-bold mb-4 text-uppercase small text-secondary"><i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>Empréstimos a Vencer</h5>
+                        
+                        <div class="card shadow-sm border-0 rounded-4 p-3 bg-white">
+                            <div id="lista-avisos-dinamica">
+                                <p class="text-muted small text-center my-3"><span class="spinner-border spinner-border-sm text-primary"></span> Verificando seus prazos...</p>
+                            </div>
+                            <a href="meus-emprestimos.html" class="btn btn-outline-secondary btn-sm w-100 mt-2 rounded-pill fw-bold">Ver Histórico Completo</a>
+                        </div>
+                    </section>
                 </div>
-            </section>
+
+            </div>
         </div>
     </div>
 
-    <!-- Widget do Chatbot com Ícone Moderno -->
+    <!-- Botão Fixo do Chatbot -->
     <div id="chat-widget-container">
         <button id="chat-toggle-btn" title="Falar com Bibliotecário Virtual">
             <i class="bi bi-chat-dots-fill"></i>
         </button>
-        <div id="chat-box" style="display: none;">
-            <div id="chat-header">
-                <span>Bibliotecário Virtual</span>
-                <button id="chat-close-btn">&times;</button>
-            </div>
-            <div id="chat-messages"></div>
-            <div id="chat-input-area">
-                <input type="text" id="chat-input" placeholder="Digite sua dúvida..." />
-                <button id="chat-send-btn">Enviar</button>
-            </div>
-        </div>
     </div>
 
-    <style>
-        #chat-widget-container { position: fixed; bottom: 25px; right: 25px; z-index: 9999; font-family: sans-serif; }
-        #chat-toggle-btn { background: linear-gradient(135deg, #031330 0%, #1e3a8a 100%); color: white; border: none; border-radius: 50%; width: 60px; height: 60px; font-size: 24px; cursor: pointer; box-shadow: 0 6px 16px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
-        #chat-toggle-btn:hover { transform: scale(1.05); }
-        #chat-box { width: 320px; height: 420px; background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; position: absolute; bottom: 75px; right: 0; }
-        #chat-header { background: #031330; color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
-        #chat-close-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
-        #chat-messages { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; font-size: 14px; background: #fafafa; }
-        #chat-input-area { display: flex; padding: 10px; border-top: 1px solid #ddd; background: #fff; }
-        #chat-input { flex: 1; padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; outline: none; font-size: 14px; }
-        #chat-send-btn { background: #031330; color: white; border: none; padding: 8px 14px; margin-left: 6px; border-radius: 6px; cursor: pointer; font-weight: 600; }
-        .msg-user { align-self: flex-end; background: #e3f2fd; color: #0d47a1; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 13px; }
-        .msg-bot { align-self: flex-start; background: #f1f1f1; color: #333; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 13px; }
-    </style>
-
+    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="chat.js"></script>
-
-    <!-- SDK do Supabase e Lógica de Busca Dinâmica -->
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script>
+        // Inicialização Supabase e VLibras
         const SUPABASE_URL = 'https://axeyrwilhvbzlfukivhu.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4ZXlyd2lsaHZiemxmdWtpdmh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NDE0OTYsImV4cCI6MjA5NDExNzQ5Nn0.8-hLkiSR6BPck-DtkiZiwMA5KRtfHUhjN61g4QPE68o';
         const windowSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         window.supabase = windowSupabase;
+        new window.VLibras.Widget('https://vlibras.gov.br/app');
 
-        // Navegação de Perfil
+        const BACKEND_URL = "https://e-library-backend-qytl.onrender.com";
+
+        // --- SISTEMA DE ACESSIBILIDADE ---
+        let tamanhoFonteAtual = 16;
+        function aplicarAcessibilidadeSalva() {
+            const fonteSalva = localStorage.getItem('acessibilidade_fonte');
+            if (fonteSalva) { tamanhoFonteAtual = parseInt(fonteSalva); document.documentElement.style.fontSize = tamanhoFonteAtual + 'px'; }
+            const contrasteSalvo = localStorage.getItem('acessibilidade_contraste');
+            if (contrasteSalvo === 'true') document.body.classList.add('alto-contraste');
+        }
+
+        function alterarFonte(acao) {
+            if (acao === 1 && tamanhoFonteAtual < 24) tamanhoFonteAtual += 2;
+            else if (acao === -1 && tamanhoFonteAtual > 12) tamanhoFonteAtual -= 2;
+            else if (acao === 0) tamanhoFonteAtual = 16;
+            document.documentElement.style.fontSize = tamanhoFonteAtual + 'px';
+            localStorage.setItem('acessibilidade_fonte', tamanhoFonteAtual);
+        }
+
+        function toggleAltoContraste() {
+            document.body.classList.toggle('alto-contraste');
+            localStorage.setItem('acessibilidade_contraste', document.body.classList.contains('alto-contraste'));
+        }
+
+        // --- NAVEGAÇÃO PERFIL ---
         async function irParaPerfil(e) {
             e.preventDefault();
             const { data: { session } } = await window.supabase.auth.getSession();
-            if (!session) {
-                alert("Sessão expirada. Faça login novamente.");
-                window.location.href = "index.html";
-                return;
-            }
+            if (!session) { alert("Faça login novamente."); window.location.href = "index.html"; return; }
+            
             const { data: perfil } = await window.supabase.from('usuarios').select('papel').eq('id', session.user.id).single();
             if (perfil?.papel === 'aluno') window.location.href = "perfil-aluno.html";
-            else if (perfil?.papel === 'professor') window.location.href = "perfil-professor.html";
-            else alert("Acesso não autorizado.");
+            else if (perfil?.papel === 'bibliotecario') window.location.href = "admin-funcionario.html";
         }
         document.getElementById('btnMeuPerfil').addEventListener('click', irParaPerfil);
         document.getElementById('sidebarMeuPerfil').addEventListener('click', irParaPerfil);
 
-        // FUNÇÃO DE BUSCA EM TEMPO REAL NO BACKEND
+        // --- CARREGAR CATÁLOGO (Integrado com seu Java) ---
         async function buscarLivros() {
             const filtro = document.getElementById('select-filtro').value;
             const termo = document.getElementById('input-termo').value;
             const container = document.getElementById('lista-livros-dinamica');
-
-            container.innerHTML = '<div class="col-12 text-center text-muted mt-4"><div class="spinner-border text-primary mb-2" role="status"></div><p>Buscando no acervo...</p></div>';
+            
+            container.innerHTML = '<div class="col-12 text-center text-muted mt-4"><span class="spinner-border text-primary"></span></div>';
 
             try {
-                // Aqui bate na API Spring Boot que criamos: LivroController.java
-                const url = `http://localhost:8080/api/livros/pesquisa?filtro=${filtro}&termo=${encodeURIComponent(termo)}`;
+                const url = `${BACKEND_URL}/api/livros/pesquisa?filtro=${filtro}&termo=${encodeURIComponent(termo)}`;
                 const resposta = await fetch(url);
-                
-                if (!resposta.ok) throw new Error("Falha na conexão com o servidor Java");
+                if (!resposta.ok) throw new Error("Erro de conexão");
                 const livros = await resposta.json();
-                
-                container.innerHTML = ''; // Limpa o loading
+                container.innerHTML = ''; 
 
                 if (livros.length === 0) {
-                    container.innerHTML = '<div class="col-12 text-center text-muted mt-4"><p>Nenhum livro encontrado no momento.</p></div>';
+                    container.innerHTML = '<div class="col-12 text-center text-muted mt-4"><p>Nenhum livro encontrado.</p></div>';
                     return;
                 }
 
-                // Renderiza os livros reais na tela
                 livros.forEach(livro => {
+                    // Ajuste visual para caber melhor em 3 colunas
                     const statusReserva = livro.qtdDisponivel > 0 ? 'Reservar' : 'Indisponível';
-                    const btnClass = livro.qtdDisponivel > 0 ? 'btn-primary btn-reservar' : 'btn-secondary disabled';
+                    const btnClass = livro.qtdDisponivel > 0 ? 'btn-reservar' : 'btn-secondary disabled';
                     
                     const cardHTML = `
-                        <div class="col-6 col-md-4 col-lg-3">
+                        <div class="col-12 col-md-6 col-lg-4">
                             <div class="card h-100 card-livro shadow-sm">
-                                <div class="card-img-placeholder">
-                                    <i class="bi bi-journal-text"></i>
-                                </div>
-                                <div class="card-body text-center d-flex flex-column">
-                                    <h6 class="fw-bold text-dark mb-1 text-truncate" title="${livro.titulo}">${livro.titulo}</h6>
-                                    <p class="small text-muted mb-1">${livro.autor}</p>
-                                    <p class="small text-muted mb-3">${livro.qtdDisponivel} unidades</p>
-                                    <button class="btn btn-sm w-100 mt-auto ${btnClass}" 
-                                        onclick="efetuarReserva('${livro.id}', '${livro.titulo}', this)"
-                                        ${livro.qtdDisponivel <= 0 ? 'disabled' : ''}>
+                                <div class="card-img-placeholder"><i class="bi bi-journal-text"></i></div>
+                                <div class="card-body text-center d-flex flex-column p-3">
+                                    <h6 class="fw-bold mb-1 text-truncate" title="${livro.titulo}">${livro.titulo}</h6>
+                                    <p class="small text-muted mb-1 text-truncate" title="${livro.autor}">${livro.autor}</p>
+                                    <p class="small text-muted mb-2 text-truncate" style="font-size: 0.75rem;"><i class="bi bi-building"></i> ${livro.editora || 'N/I'}</p>
+                                    <p class="small mb-3 fw-semibold text-primary">${livro.qtdDisponivel} disponíveis</p>
+                                    <button class="btn btn-sm w-100 mt-auto ${btnClass}" onclick="efetuarReserva('${livro.id}', '${livro.titulo}', this)" ${livro.qtdDisponivel <= 0 ? 'disabled' : ''}>
                                         ${statusReserva}
                                     </button>
                                 </div>
                             </div>
-                        </div>
-                    `;
+                        </div>`;
                     container.innerHTML += cardHTML;
                 });
             } catch (error) {
-                console.error(error);
-                container.innerHTML = '<div class="col-12 text-center text-danger mt-4"><p>Erro ao conectar com o banco de dados da biblioteca.</p></div>';
+                container.innerHTML = '<div class="col-12 text-center text-danger mt-4"><p>Erro ao conectar com a biblioteca.</p></div>';
             }
         }
 
-        // FUNÇÃO DE RESERVA DINÂMICA
+        // --- EFETUAR RESERVA (Criando empréstimo) ---
         async function efetuarReserva(livroId, tituloLivro, btnClicado) {
             const { data: { session } } = await window.supabase.auth.getSession();
-            if (!session) {
-                alert("Você precisa estar logado para reservar um livro.");
-                window.location.href = "index.html";
-                return;
+            if (!session) { alert("Você precisa estar logado para reservar."); return; }
+
+            // Verifica qual o papel do usuário para definir o prazo de devolução
+            const { data: perfil } = await window.supabase.from('usuarios').select('papel').eq('id', session.user.id).single();
+            const diasEmprestimo = perfil?.papel === 'professor' ? 30 : 14;
+
+            const dataRetirada = new Date();
+            const dataPrevista = new Date();
+            dataPrevista.setDate(dataPrevista.getDate() + diasEmprestimo);
+
+            try {
+                // Insere no banco com status SOLICITADO para o bibliotecário ver e aprovar
+                const { error } = await window.supabase
+                    .from('emprestimos')
+                    .insert([{ 
+                        user_id: session.user.id, 
+                        livro_id: livroId,
+                        status: 'solicitado', // Bibliotecário precisará aprovar a retirada
+                        data_retirada: dataRetirada.toISOString().split('T')[0],
+                        data_prevista: dataPrevista.toISOString().split('T')[0]
+                    }]);
+
+                if (error) throw error;
+
+                btnClicado.textContent = 'SOLICITADO';
+                btnClicado.className = 'btn btn-sm w-100 mt-auto btn-success disabled';
+                btnClicado.disabled = true;
+                alert(`Solicitação de "${tituloLivro}" enviada! Passe no balcão da biblioteca para retirar.`);
+                
+                carregarAvisosVencimento(); // Atualiza a lista da direita
+                
+            } catch (error) {
+                alert("Erro ao realizar a reserva. Verifique se o livro está disponível.");
             }
-
-            const { error } = await window.supabase
-                .from('emprestimos')
-                .insert([{ 
-                    user_id: session.user.id, 
-                    livro_id: livroId,
-                    status: 'ativo',
-                    data_retirada: new Date().toISOString().split('T')[0],
-                    data_prevista: new Date(Date.now() + 14*24*60*60*1000).toISOString().split('T')[0]
-                }]);
-
-            if (error) {
-                console.error("Erro ao reservar:", error);
-                alert("Erro ao realizar a reserva. Tente novamente.");
-                return;
-            }
-
-            btnClicado.textContent = 'JÁ RESERVADO';
-            btnClicado.className = 'btn btn-sm w-100 mt-auto btn-danger disabled';
-            btnClicado.disabled = true;
-
-            alert(`Livro "${tituloLivro}" reservado com sucesso!`);
         }
 
-        // Carregar livros ao iniciar a página
-        document.addEventListener('DOMContentLoaded', buscarLivros);
+        // --- CARREGAR AVISOS DE VENCIMENTO (A Lógica dos 3 Dias) ---
+        async function carregarAvisosVencimento() {
+            const container = document.getElementById('lista-avisos-dinamica');
+            const { data: { session } } = await window.supabase.auth.getSession();
+            if (!session) return;
+
+            try {
+                // Busca apenas empréstimos que o aluno já retirou fisicamente e estão pendentes de devolução
+                const { data: emprestimos, error } = await window.supabase
+                    .from('emprestimos')
+                    .select('id, data_prevista, livros(titulo)')
+                    .eq('user_id', session.user.id)
+                    .eq('status', 'retirado') 
+                    .order('data_prevista', { ascending: true });
+
+                if (error) throw error;
+
+                if (emprestimos.length === 0) {
+                    container.innerHTML = '<div class="alert alert-light text-center border small text-muted"><i class="bi bi-check-circle text-success me-2"></i>Você não tem empréstimos ativos pendentes de devolução.</div>';
+                    return;
+                }
+
+                let avisosHTML = '';
+                const hoje = new Date();
+                hoje.setHours(0,0,0,0);
+
+                emprestimos.forEach(emp => {
+                    const dataDevolucao = new Date(emp.data_prevista);
+                    dataDevolucao.setHours(0,0,0,0);
+                    
+                    // Calcula a diferença em dias
+                    const diferencaTempo = dataDevolucao.getTime() - hoje.getTime();
+                    const diferencaDias = Math.ceil(diferencaTempo / (1000 * 3600 * 24));
+
+                    // Formata a data para BR (DD/MM/YYYY)
+                    const dataFormatada = dataDevolucao.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+                    const titulo = emp.livros?.titulo || 'Livro ID: ' + emp.livro_id;
+
+                    // Lógica de Cores e Tags
+                    let classeCard = 'alerta-normal';
+                    let tagAviso = '';
+                    let icone = '<i class="bi bi-calendar-check text-success"></i>';
+
+                    if (diferencaDias < 0) {
+                        classeCard = 'alerta-urgente border-danger';
+                        tagAviso = `<span class="badge bg-danger ms-2">Atrasado (${Math.abs(diferencaDias)} dias)</span>`;
+                        icone = '<i class="bi bi-exclamation-circle-fill text-danger"></i>';
+                    } else if (diferencaDias <= 3) {
+                        classeCard = 'alerta-urgente';
+                        tagAviso = `<span class="badge bg-warning text-dark ms-2">Vence em ${diferencaDias} dia(s)</span>`;
+                        icone = '<i class="bi bi-bell-fill text-warning"></i>';
+                    } else {
+                        tagAviso = `<span class="badge bg-light text-secondary ms-2 border">No prazo</span>`;
+                    }
+
+                    avisosHTML += `
+                        <div class="card card-alerta p-3 shadow-sm ${classeCard}">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.9rem;">${icone} ${titulo}</h6>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="small text-muted fw-semibold">Devolver até: ${dataFormatada}</span>
+                                ${tagAviso}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = avisosHTML;
+
+            } catch (error) {
+                container.innerHTML = '<p class="text-danger small">Erro ao carregar avisos.</p>';
+            }
+        }
+
+        // Inicializa as funções ao abrir a página
+        document.addEventListener('DOMContentLoaded', () => {
+            aplicarAcessibilidadeSalva();
+            buscarLivros();
+            carregarAvisosVencimento();
+        });
     </script>
 </body>
 </html>

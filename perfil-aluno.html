@@ -56,10 +56,23 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-    const SUPABASE_URL = 'https://axeyrwilhvbzlfukivhu.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4ZXlyd2lsaHZiemxmdWtpdmh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NDE0OTYsImV4cCI6MjA5NDExNzQ5Nn0.8-hLkiSR6BPck-DtkiZiwMA5KRtfHUhjN61g4QPE68o';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    <script>
+        const SUPABASE_URL = 'https://axeyrwilhvbzlfukivhu.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4ZXlyd2lsaHZiemxmdWtpdmh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NDE0OTYsImV4cCI6MjA5NDExNzQ5Nn0.8-hLkiSR6BPck-DtkiZiwMA5KRtfHUhjN61g4QPE68o';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                window.supabase = windowSupabase;
+
+                new window.VLibras.Widget('https://vlibras.gov.br/app');
+
+                    const BACKEND_URL = "https://e-library-backend-qytl.onrender.com";
+
+            let tamanhoFonteAtual = 16;
+        function aplicarAcessibilidadeSalva() {
+            const fonteSalva = localStorage.getItem('acessibilidade_fonte');
+            if (fonteSalva) { tamanhoFonteAtual = parseInt(fonteSalva); document.documentElement.style.fontSize = tamanhoFonteAtual + 'px'; }
+            const contrasteSalvo = localStorage.getItem('acessibilidade_contraste');
+            if (contrasteSalvo === 'true') document.body.classList.add('alto-contraste');
+        }
 
     async function carregarPerfil() {
         const { data: { session } } = await supabaseClient.auth.getSession();
