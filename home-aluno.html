@@ -74,9 +74,9 @@
         .card-livro:hover { transform: translateY(-5px); box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); }
         .card-livro h6 { color: var(--text-main) !important; }
 
-        .card-alerta { border-left: 4px solid; border-radius: 8px; margin-bottom: 15px; }
-        .alerta-normal { border-left-color: #198754; } /* Verde - Tudo certo */
-        .alerta-urgente { border-left-color: #dc3545; background-color: #fff5f5; } /* Vermelho - Vence em 3 dias */
+        .card-alerta { border-left: 4px solid; border-radius: 8px; margin-bottom: 15px; height: 100%;}
+        .alerta-normal { border-left-color: #198754; } 
+        .alerta-urgente { border-left-color: #dc3545; background-color: #fff5f5; } 
 
         .btn-reservar { border-radius: 50px; font-weight: 600; background-color: var(--btn-bg); color: var(--btn-text); border: none; }
         .btn-reservar:hover { opacity: 0.8; color: var(--btn-text); }
@@ -132,49 +132,46 @@
         </nav>
 
         <div class="container-fluid py-2">
-            <!-- DASHBOARD: Catálogo à esquerda (8 colunas) e Avisos à direita (4 colunas) -->
-            <div class="row g-4">
+            
+            <!-- SEÇÃO SUPERIOR: EMPRÉSTIMOS A VENCER -->
+            <section id="secao-avisos" class="mb-5">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-uppercase small text-secondary mb-0"><i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>Empréstimos a Vencer</h5>
+                    <a href="meus-emprestimos.html" class="text-decoration-none small fw-semibold text-primary">Ver Histórico Completo <i class="bi bi-arrow-right"></i></a>
+                </div>
                 
-                <!-- COLUNA ESQUERDA: CATÁLOGO -->
-                <div class="col-lg-8">
-                    <section id="secao-catalogo">
-                        <h5 class="fw-bold mb-4 text-uppercase small text-secondary"><i class="bi bi-grid-fill me-2"></i>Catálogo Disponível</h5>
-                        
-                        <div class="input-group mb-4 shadow-sm rounded-3">
-                            <select class="form-select" id="select-filtro" style="max-width: 250px;">
-                                <option value="titulo">Título do Livro</option>
-                                <option value="autor">Autor</option>
-                                <option value="editora">Editora</option>
-                                <option value="isbn">ISBN</option>
-                            </select>
-                            <input type="text" class="form-control" id="input-termo" placeholder="Busque no acervo...">
-                            <button class="btn btn-reservar px-4" style="border-radius: 0 6px 6px 0;" type="button" onclick="buscarLivros()">
-                                <i class="bi bi-search"></i> Buscar
-                            </button>
-                        </div>
+                <div class="p-4 bg-white rounded-4 shadow-sm">
+                    <div id="lista-avisos-dinamica" class="row g-3">
+                        <p class="text-muted small text-center my-3 w-100"><span class="spinner-border spinner-border-sm text-primary"></span> Verificando seus prazos...</p>
+                    </div>
+                </div>
+            </section>
 
-                        <!-- Lista de Livros -->
-                        <div id="lista-livros-dinamica" class="row g-3 align-items-stretch">
-                            <!-- Inserido via JS -->
-                        </div>
-                    </section>
+            <hr class="my-4 opacity-25">
+
+            <!-- SEÇÃO INFERIOR: CATÁLOGO -->
+            <section id="secao-catalogo">
+                <h5 class="fw-bold mb-4 text-uppercase small text-secondary"><i class="bi bi-grid-fill me-2"></i>Catálogo Disponível</h5>
+                
+                <div class="input-group mb-4 shadow-sm rounded-3 mx-auto" style="max-width: 800px;">
+                    <select class="form-select" id="select-filtro" style="max-width: 250px;">
+                        <option value="titulo">Título do Livro</option>
+                        <option value="autor">Autor</option>
+                        <option value="editora">Editora</option>
+                        <option value="isbn">ISBN</option>
+                    </select>
+                    <input type="text" class="form-control" id="input-termo" placeholder="Busque no acervo...">
+                    <button class="btn btn-reservar px-4" style="border-radius: 0 6px 6px 0;" type="button" onclick="buscarLivros()">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
                 </div>
 
-                <!-- COLUNA DIREITA: EMPRÉSTIMOS A VENCER -->
-                <div class="col-lg-4">
-                    <section id="secao-avisos">
-                        <h5 class="fw-bold mb-4 text-uppercase small text-secondary"><i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>Empréstimos a Vencer</h5>
-                        
-                        <div class="card shadow-sm border-0 rounded-4 p-3 bg-white">
-                            <div id="lista-avisos-dinamica">
-                                <p class="text-muted small text-center my-3"><span class="spinner-border spinner-border-sm text-primary"></span> Verificando seus prazos...</p>
-                            </div>
-                            <a href="meus-emprestimos.html" class="btn btn-outline-secondary btn-sm w-100 mt-2 rounded-pill fw-bold">Ver Histórico Completo</a>
-                        </div>
-                    </section>
+                <!-- Lista de Livros -->
+                <div id="lista-livros-dinamica" class="row g-4 align-items-stretch">
+                    <!-- Inserido via JS -->
                 </div>
+            </section>
 
-            </div>
         </div>
     </div>
 
@@ -233,9 +230,8 @@
             else if (perfil?.papel === 'bibliotecario') window.location.href = "admin-funcionario.html";
         }
         document.getElementById('btnMeuPerfil').addEventListener('click', irParaPerfil);
-        document.getElementById('sidebarMeuPerfil').addEventListener('click', irParaPerfil);
 
-        // --- CARREGAR CATÁLOGO (Integrado com seu Java) ---
+        // --- CARREGAR CATÁLOGO ---
         async function buscarLivros() {
             const filtro = document.getElementById('select-filtro').value;
             const termo = document.getElementById('input-termo').value;
@@ -256,12 +252,11 @@
                 }
 
                 livros.forEach(livro => {
-                    // Ajuste visual para caber melhor em 3 colunas
                     const statusReserva = livro.qtdDisponivel > 0 ? 'Reservar' : 'Indisponível';
                     const btnClass = livro.qtdDisponivel > 0 ? 'btn-reservar' : 'btn-secondary disabled';
                     
                     const cardHTML = `
-                        <div class="col-12 col-md-6 col-lg-4">
+                        <div class="col-12 col-md-6 col-lg-3">
                             <div class="card h-100 card-livro shadow-sm">
                                 <div class="card-img-placeholder"><i class="bi bi-journal-text"></i></div>
                                 <div class="card-body text-center d-flex flex-column p-3">
@@ -282,12 +277,11 @@
             }
         }
 
-        // --- EFETUAR RESERVA (Criando empréstimo) ---
+        // --- EFETUAR RESERVA ---
         async function efetuarReserva(livroId, tituloLivro, btnClicado) {
             const { data: { session } } = await window.supabase.auth.getSession();
             if (!session) { alert("Você precisa estar logado para reservar."); return; }
 
-            // Verifica qual o papel do usuário para definir o prazo de devolução
             const { data: perfil } = await window.supabase.from('usuarios').select('papel').eq('id', session.user.id).single();
             const diasEmprestimo = perfil?.papel === 'professor' ? 30 : 14;
 
@@ -296,13 +290,12 @@
             dataPrevista.setDate(dataPrevista.getDate() + diasEmprestimo);
 
             try {
-                // Insere no banco com status SOLICITADO para o bibliotecário ver e aprovar
                 const { error } = await window.supabase
                     .from('emprestimos')
                     .insert([{ 
                         user_id: session.user.id, 
                         livro_id: livroId,
-                        status: 'solicitado', // Bibliotecário precisará aprovar a retirada
+                        status: 'solicitado', 
                         data_retirada: dataRetirada.toISOString().split('T')[0],
                         data_prevista: dataPrevista.toISOString().split('T')[0]
                     }]);
@@ -314,21 +307,20 @@
                 btnClicado.disabled = true;
                 alert(`Solicitação de "${tituloLivro}" enviada! Passe no balcão da biblioteca para retirar.`);
                 
-                carregarAvisosVencimento(); // Atualiza a lista da direita
+                carregarAvisosVencimento(); 
                 
             } catch (error) {
                 alert("Erro ao realizar a reserva. Verifique se o livro está disponível.");
             }
         }
 
-        // --- CARREGAR AVISOS DE VENCIMENTO (A Lógica dos 3 Dias) ---
+        // --- CARREGAR AVISOS DE VENCIMENTO EM LINHA ---
         async function carregarAvisosVencimento() {
             const container = document.getElementById('lista-avisos-dinamica');
             const { data: { session } } = await window.supabase.auth.getSession();
             if (!session) return;
 
             try {
-                // Busca apenas empréstimos que o aluno já retirou fisicamente e estão pendentes de devolução
                 const { data: emprestimos, error } = await window.supabase
                     .from('emprestimos')
                     .select('id, data_prevista, livros(titulo)')
@@ -339,7 +331,7 @@
                 if (error) throw error;
 
                 if (emprestimos.length === 0) {
-                    container.innerHTML = '<div class="alert alert-light text-center border small text-muted"><i class="bi bi-check-circle text-success me-2"></i>Você não tem empréstimos ativos pendentes de devolução.</div>';
+                    container.innerHTML = '<div class="col-12"><div class="alert alert-light text-center border small text-muted w-100 mb-0"><i class="bi bi-check-circle text-success me-2"></i>Você não tem empréstimos ativos pendentes de devolução.</div></div>';
                     return;
                 }
 
@@ -351,39 +343,37 @@
                     const dataDevolucao = new Date(emp.data_prevista);
                     dataDevolucao.setHours(0,0,0,0);
                     
-                    // Calcula a diferença em dias
                     const diferencaTempo = dataDevolucao.getTime() - hoje.getTime();
                     const diferencaDias = Math.ceil(diferencaTempo / (1000 * 3600 * 24));
-
-                    // Formata a data para BR (DD/MM/YYYY)
                     const dataFormatada = dataDevolucao.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
                     const titulo = emp.livros?.titulo || 'Livro ID: ' + emp.livro_id;
 
-                    // Lógica de Cores e Tags
                     let classeCard = 'alerta-normal';
                     let tagAviso = '';
                     let icone = '<i class="bi bi-calendar-check text-success"></i>';
 
                     if (diferencaDias < 0) {
                         classeCard = 'alerta-urgente border-danger';
-                        tagAviso = `<span class="badge bg-danger ms-2">Atrasado (${Math.abs(diferencaDias)} dias)</span>`;
+                        tagAviso = `<span class="badge bg-danger">Atrasado (${Math.abs(diferencaDias)} dias)</span>`;
                         icone = '<i class="bi bi-exclamation-circle-fill text-danger"></i>';
                     } else if (diferencaDias <= 3) {
                         classeCard = 'alerta-urgente';
-                        tagAviso = `<span class="badge bg-warning text-dark ms-2">Vence em ${diferencaDias} dia(s)</span>`;
+                        tagAviso = `<span class="badge bg-warning text-dark">Vence em ${diferencaDias} dia(s)</span>`;
                         icone = '<i class="bi bi-bell-fill text-warning"></i>';
                     } else {
-                        tagAviso = `<span class="badge bg-light text-secondary ms-2 border">No prazo</span>`;
+                        tagAviso = `<span class="badge bg-light text-secondary border">No prazo</span>`;
                     }
 
                     avisosHTML += `
-                        <div class="card card-alerta p-3 shadow-sm ${classeCard}">
-                            <div class="d-flex justify-content-between align-items-start mb-1">
-                                <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.9rem;">${icone} ${titulo}</h6>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center mt-2">
-                                <span class="small text-muted fw-semibold">Devolver até: ${dataFormatada}</span>
-                                ${tagAviso}
+                        <div class="col-12 col-md-6 col-lg-4 mb-2">
+                            <div class="card card-alerta p-3 shadow-sm bg-light ${classeCard}">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="fw-bold mb-0 text-dark text-truncate" title="${titulo}" style="font-size: 0.9rem;">${icone} ${titulo}</h6>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <span class="small text-muted fw-semibold">Devolver: ${dataFormatada}</span>
+                                    ${tagAviso}
+                                </div>
                             </div>
                         </div>
                     `;
@@ -396,7 +386,6 @@
             }
         }
 
-        // Inicializa as funções ao abrir a página
         document.addEventListener('DOMContentLoaded', () => {
             aplicarAcessibilidadeSalva();
             buscarLivros();
