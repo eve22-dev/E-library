@@ -9,10 +9,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #f8f9fa; }
-        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #041b5b 20%, #dc3545 100%);  color: white; position: fixed; width: 260px; }
-        .sidebar .nav-link { color: #cbd5e1; border-radius: 8px; margin-bottom: 5px; transition: all 0.3s; }
+        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #041b5b 20%, #dc3545 100%);  color: white; position: fixed; width: 260px; z-index: 1000; }
+        .sidebar .nav-link { color: #cbd5e1; border-radius: 8px; margin-bottom: 5px; transition: all 0.3s; cursor: pointer; }
         .sidebar .nav-link:hover, .sidebar .nav-link.active { background-color: #3b82f6; color: white; }
         .main-content { margin-left: 260px; padding: 30px; }
+        .action-btn { font-size: 0.85rem; padding: 0.25rem 0.75rem; }
     </style>
 </head>
 <body>
@@ -23,19 +24,19 @@
             <hr class="border-secondary opacity-50 mb-4">
             <ul class="nav nav-pills flex-column mb-auto">
                 <li class="nav-item mb-2">
-                    <a href="#" class="nav-link active" onclick="mudarAba('emprestimos', event)"><i class="bi bi-arrow-left-right me-2"></i> Empréstimos</a>
+                    <a class="nav-link active" onclick="mudarAba('emprestimos', event)"><i class="bi bi-arrow-left-right me-2"></i> Empréstimos</a>
                 </li>
                 <li class="nav-item mb-2">
-                    <a href="#" class="nav-link" onclick="mudarAba('exemplares', event)"><i class="bi bi-journal-plus me-2"></i> Cadastro de Exemplares</a>
+                    <a class="nav-link" onclick="mudarAba('exemplares', event)"><i class="bi bi-journal-plus me-2"></i> Cadastro de Exemplares</a>
                 </li>
                 <li class="nav-item mb-2">
-                    <a href="#" class="nav-link" onclick="mudarAba('tabelas', event)"><i class="bi bi-table me-2"></i> Tabelas e Códigos</a>
+                    <a class="nav-link" onclick="mudarAba('tabelas', event)"><i class="bi bi-table me-2"></i> Tabelas e Códigos</a>
                 </li>
                 <li class="nav-item mb-2">
-                    <a href="#" class="nav-link" onclick="mudarAba('relatorios', event)"><i class="bi bi-file-earmark-bar-graph me-2"></i> Relatórios</a>
+                    <a class="nav-link" onclick="mudarAba('relatorios', event)"><i class="bi bi-file-earmark-bar-graph me-2"></i> Relatórios</a>
                 </li>
                 <li class="nav-item mb-2">
-                    <a href="#" class="nav-link position-relative" onclick="mudarAba('mensagens', event)">
+                    <a class="nav-link position-relative" onclick="mudarAba('mensagens', event)">
                         <i class="bi bi-chat-dots me-2"></i> Solicitações Chat
                         <span class="position-absolute top-50 start-85 translate-middle p-1 bg-danger border border-light rounded-circle" id="badgeNotificacao"></span>
                     </a>
@@ -55,7 +56,6 @@
         </div>
     </div>
 
-    <!-- SDK do Supabase (Mantido para o Logout) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const SUPABASE_URL = 'https://axeyrwilhvbzlfukivhu.supabase.co';
@@ -65,12 +65,10 @@
 
         const BACKEND_URL = "https://e-library-backend-qytl.onrender.com"; 
 
-        // Carrega a aba de empréstimos assim que a página abre
         document.addEventListener('DOMContentLoaded', () => mudarAba('emprestimos', { currentTarget: document.querySelector('.nav-link.active') }));
 
-        // --- SISTEMA DE ABAS E RENDERIZAÇÃO DINÂMICA ---
         function mudarAba(aba, event) {
-            if(event) {
+            if(event && event.currentTarget) {
                 document.querySelectorAll('.sidebar .nav-link').forEach(link => link.classList.remove('active'));
                 event.currentTarget.classList.add('active');
             }
@@ -80,7 +78,7 @@
             if (aba === 'emprestimos') {
                 container.innerHTML = `
                     <h2 class="fw-bold text-dark">Gerenciamento de Empréstimos</h2>
-                    <p class="text-muted">Acompanhe as retiradas e devoluções ativas no acervo.</p>
+                    <p class="text-muted">Acompanhe as retiradas solicitadas no acervo.</p>
                     <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
                         <div id="listaEmprestimos" class="table-responsive">
                             <p class="text-muted">Carregando dados do banco de dados...</p>
@@ -89,7 +87,6 @@
                 carregarEmprestimos();
 
             } else if (aba === 'exemplares') {
-                // FORMULÁRIO REAL DE CADASTRO
                 container.innerHTML = `
                     <h2 class="fw-bold text-dark">Cadastro de Exemplares</h2>
                     <p class="text-muted">Adicione novos livros e disponibilize-os no acervo imediatamente.</p>
@@ -104,6 +101,10 @@
                                     <label class="form-label fw-semibold">Autor</label>
                                     <input type="text" id="livroAutor" class="form-control" required>
                                 </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Editora</label>
+                                    <input type="text" id="livroEditora" class="form-control" required>
+                                </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label fw-semibold">ISBN</label>
                                     <input type="text" id="livroIsbn" class="form-control" placeholder="Opcional">
@@ -112,6 +113,10 @@
                                     <label class="form-label fw-semibold">Qtd. Total (Estoque)</label>
                                     <input type="number" id="livroQtd" class="form-control" value="1" min="1" required>
                                 </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label fw-semibold">ID da Categoria</label>
+                                    <input type="text" id="livroCategoriaId" class="form-control" placeholder="UUID da categoria" required>
+                                </div>
                             </div>
                             <button type="submit" id="btnSalvarLivro" class="btn btn-primary mt-3 px-4 shadow-sm">
                                 <i class="bi bi-check-lg"></i> Salvar Livro no Sistema
@@ -119,123 +124,188 @@
                         </form>
                     </div>`;
 
+            } else if (aba === 'tabelas') {
+                container.innerHTML = `
+                    <h2 class="fw-bold text-dark">Tabelas e Códigos (Categorias)</h2>
+                    <p class="text-muted">Crie categorias para organizar o acervo.</p>
+                    <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
+                        <form id="formCadastroCategoria" onsubmit="cadastrarCategoria(event)">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Nome da Categoria</label>
+                                <input type="text" id="catNome" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Descrição</label>
+                                <textarea id="catDesc" class="form-control" rows="2"></textarea>
+                            </div>
+                            <button type="submit" id="btnSalvarCategoria" class="btn btn-primary shadow-sm">
+                                <i class="bi bi-save"></i> Criar Categoria
+                            </button>
+                        </form>
+                    </div>`;
+
             } else if (aba === 'mensagens') {
                 container.innerHTML = `
                     <h2 class="fw-bold text-dark">Solicitações de Atendimento (Chat)</h2>
-                    <p class="text-muted">Dúvidas repassadas pela Inteligência Artificial para atendimento humano.</p>
                     <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
                         <div id="listaMensagens" class="list-group">
-                            <p class="text-muted">Buscando solicitações...</p>
+                            <p class="text-muted">Integração pendente.</p>
                         </div>
                     </div>`;
-                carregarMensagensSuporte();
             } else {
-                // Relatórios e Tabelas (Pode expandir depois usando a mesma lógica)
-                container.innerHTML = `<h2 class="fw-bold text-dark">Em Desenvolvimento</h2><p class="text-muted">Esta funcionalidade será conectada à API em breve.</p>`;
+                container.innerHTML = `<h2 class="fw-bold text-dark">Em Desenvolvimento</h2>`;
             }
         }
 
         // --- INTEGRAÇÃO COM O BACKEND JAVA ---
 
-        // 1. Envia os dados do formulário para salvar o livro no Java
-        async function cadastrarLivro(event) {
-            event.preventDefault(); // Impede a página de recarregar
-            
-            const btnSalvar = document.getElementById('btnSalvarLivro');
-            btnSalvar.disabled = true;
-            btnSalvar.innerText = "Salvando...";
-
-            // Monta o objeto com os dados exatos que a sua LivroEntity espera
-            const novoLivro = {
-                titulo: document.getElementById('livroTitulo').value,
-                autor: document.getElementById('livroAutor').value,
-                isbn: document.getElementById('livroIsbn').value,
-                qtdTotal: parseInt(document.getElementById('livroQtd').value),
-                qtdDisponivel: parseInt(document.getElementById('livroQtd').value),
-                ativo: true
+        function getAuthHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
             };
-
-            try {
-                // Bate no endpoint POST do seu Spring Boot
-                const response = await fetch(`${BACKEND_URL}/api/livros`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}` // Manda o token de segurança
-                    },
-                    body: JSON.stringify(novoLivro)
-                });
-
-                if (response.ok) {
-                    alert('Sucesso! Livro cadastrado e já disponível para os alunos.');
-                    document.getElementById('formCadastroLivro').reset(); // Limpa o form
-                } else {
-                    const erro = await response.text();
-                    alert('Erro ao salvar livro: ' + erro);
-                }
-            } catch (error) {
-                console.error('Erro de rede:', error);
-                alert('Erro de comunicação com o servidor Java. Verifique se o backend está rodando.');
-            } finally {
-                btnSalvar.disabled = false;
-                btnSalvar.innerHTML = '<i class="bi bi-check-lg"></i> Salvar Livro no Sistema';
-            }
         }
 
-        // 2. Busca e desenha a tabela de empréstimos vinda do banco
+        // 1. CARREGAR EMPRÉSTIMOS SOLICITADOS
         async function carregarEmprestimos() {
             try {
-                const response = await fetch(`${BACKEND_URL}/api/emprestimos`);
+                // Chama a rota específica que criamos no back-end
+                const response = await fetch(`${BACKEND_URL}/api/emprestimos/solicitados`, {
+                    headers: getAuthHeaders()
+                });
                 const divLista = document.getElementById('listaEmprestimos');
                 
                 if(!response.ok) throw new Error("Falha na API");
                 const emprestimos = await response.json();
 
                 if(emprestimos.length === 0) {
-                    divLista.innerHTML = '<p class="text-muted">Nenhum empréstimo ativo no momento.</p>';
+                    divLista.innerHTML = '<p class="text-muted mb-0">Nenhuma reserva pendente de retirada.</p>';
                     return;
                 }
 
-                // Monta a tabela HTML com os dados reais
                 let tabelaHTML = `<table class="table align-middle">
-                                    <thead><tr><th>Livro</th><th>Retirada</th><th>Devolução Prevista</th><th>Status</th></tr></thead><tbody>`;
+                    <thead><tr><th>Livro (ID)</th><th>Utilizador (ID)</th><th>Data Prevista</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
                 
                 emprestimos.forEach(emp => {
                     tabelaHTML += `<tr>
-                                    <td class="fw-bold">${emp.tituloLivro || 'Livro não identificado'}</td>
-                                    <td>${emp.dataRetirada}</td>
-                                    <td>${emp.dataPrevista}</td>
-                                    <td><span class="badge bg-primary">${emp.status}</span></td>
-                                   </tr>`;
+                        <td class="fw-semibold text-truncate" style="max-width: 150px;" title="${emp.livro?.id}">${emp.livro?.titulo || emp.livro?.id}</td>
+                        <td class="text-truncate" style="max-width: 150px;" title="${emp.usuario?.id}">${emp.usuario?.nome || emp.usuario?.id}</td>
+                        <td>${emp.dataPrevista || 'N/A'}</td>
+                        <td><span class="badge bg-warning text-dark">${emp.status.toUpperCase()}</span></td>
+                        <td>
+                            <button class="btn btn-success action-btn" onclick="marcarComoRetirado('${emp.id}')">
+                                <i class="bi bi-check2-circle"></i> Entregar Livro
+                            </button>
+                        </td>
+                    </tr>`;
                 });
                 tabelaHTML += `</tbody></table>`;
                 divLista.innerHTML = tabelaHTML;
 
             } catch (error) {
-                document.getElementById('listaEmprestimos').innerHTML = '<p class="text-danger">Erro ao carregar os empréstimos. Servidor indisponível.</p>';
+                console.error(error);
+                document.getElementById('listaEmprestimos').innerHTML = '<p class="text-danger">Erro ao carregar os empréstimos.</p>';
             }
         }
 
-        // 3. Busca mensagens de suporte salvas pelo Chatbot
-        async function carregarMensagensSuporte() {
-            // Se você já tem um endpoint de listar mensagens, coloque a chamada fetch aqui.
-            // Por enquanto, deixarei um aviso de integração pendente.
-            document.getElementById('listaMensagens').innerHTML = '<p class="text-muted">Integração da lista de mensagens pendente no backend.</p>';
+        // 2. MARCAR COMO RETIRADO (Ação do Bibliotecário)
+        async function marcarComoRetirado(id) {
+            if(!confirm("Confirmar a entrega física deste livro ao utilizador?")) return;
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/emprestimos/${id}/retirar`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders()
+                });
+
+                if(response.ok) {
+                    alert('Status atualizado para RETIRADO com sucesso!');
+                    carregarEmprestimos(); // Recarrega a tabela automaticamente
+                } else {
+                    const erro = await response.text();
+                    alert('Erro: ' + erro);
+                }
+            } catch (error) {
+                alert('Erro de comunicação com o servidor.');
+            }
+        }
+
+        // 3. CADASTRAR LIVRO
+        async function cadastrarLivro(event) {
+            event.preventDefault();
+            const btnSalvar = document.getElementById('btnSalvarLivro');
+            btnSalvar.disabled = true;
+
+            const novoLivro = {
+                titulo: document.getElementById('livroTitulo').value,
+                autor: document.getElementById('livroAutor').value,
+                isbn: document.getElementById('livroIsbn').value,
+                qtdTotal: parseInt(document.getElementById('livroQtd').value),
+                // O back-end iguala a qtdDisponivel na Controller
+                categoria: { id: document.getElementById('livroCategoriaId').value }
+            };
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/livros`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(novoLivro)
+                });
+
+                if (response.ok) {
+                    alert('Livro cadastrado com sucesso!');
+                    document.getElementById('formCadastroLivro').reset();
+                } else {
+                    alert('Erro ao salvar livro. Verifique o ID da Categoria.');
+                }
+            } catch (error) {
+                alert('Erro de rede.');
+            } finally {
+                btnSalvar.disabled = false;
+            }
+        }
+
+        // 4. CADASTRAR CATEGORIA
+        async function cadastrarCategoria(event) {
+            event.preventDefault();
+            const btnSalvar = document.getElementById('btnSalvarCategoria');
+            btnSalvar.disabled = true;
+
+            const novaCategoria = {
+                nome: document.getElementById('catNome').value,
+                descricao: document.getElementById('catDesc').value
+            };
+
+            try {
+                // Alvo da rota que definimos no Controller do Bibliotecário
+                const response = await fetch(`${BACKEND_URL}/api/bibliotecario/categorias`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(novaCategoria)
+                });
+
+                if (response.ok) {
+                    const catSalva = await response.json();
+                    alert(`Categoria criada! Guarde este ID para cadastrar os livros: ${catSalva.id}`);
+                    document.getElementById('formCadastroCategoria').reset();
+                } else {
+                    alert('Erro ao criar categoria.');
+                }
+            } catch (error) {
+                alert('Erro de rede.');
+            } finally {
+                btnSalvar.disabled = false;
+            }
         }
 
         // --- SISTEMA DE LOGOUT ---
         document.getElementById('btnLogout').addEventListener('click', async () => {
             await window.supabase.auth.signOut();
-            localStorage.clear(); // Limpa a role e tokens
+            localStorage.clear();
             window.location.href = 'index.html';
         });
 
     </script>
-    
     <script src="auth-guard.js"></script>
-    <script>
-        // Trava de segurança: Garante que só o bibliotecário entre aqui
-        // verificarAcesso(['bibliotecario']);
-    </script>
 </body>
 </html>

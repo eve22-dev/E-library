@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-library | Acessibilidade</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        /* Variáveis de Cores para Acessibilidade Dinâmica */
+        :root {
+            --bg-body: #f8f9fa;
+            --text-main: #333333;
+            --bg-card: #ffffff;
+            --header-gradient: linear-gradient(135deg, #031330 0%, #1e3a8a 100%);
+            --header-text: #ffffff;
+            --icon-bg: #e3f2fd;
+            --icon-color: #0d47a1;
+            --btn-outline: #6c757d;
+        }
+
+        /* Classe de Alto Contraste (Ativada via JS) */
+        body.alto-contraste {
+            --bg-body: #000000 !important;
+            --text-main: #ffffff !important;
+            --bg-card: #121212 !important;
+            --header-gradient: #000000 !important;
+            --header-text: #ffff00 !important;
+            --icon-bg: #000000 !important;
+            --icon-color: #ffff00 !important;
+            --btn-outline: #ffff00 !important;
+        }
+
+        body.alto-contraste * {
+            border-color: #ffff00 !important;
+        }
+
+        body.alto-contraste .text-muted, 
+        body.alto-contraste .text-dark {
+            color: #ffffff !important;
+        }
+
+        body.alto-contraste .card,
+        body.alto-contraste .btn {
+            border: 1px solid #ffff00 !important;
+            color: #ffff00 !important;
+            background-color: #000000 !important;
+        }
+
+        /* Estilos Base */
+        html { font-size: 16px; transition: font-size 0.3s ease; }
+        
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background-color: var(--bg-body); 
+            color: var(--text-main);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .header-acessibilidade {
+            background: var(--header-gradient);
+            color: var(--header-text);
+            padding: 60px 0;
+            text-align: center;
+        }
+        
+        .header-acessibilidade i {
+            font-size: 4rem;
+            color: var(--header-text);
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            color: var(--text-main);
+        }
+
+        .feature-card {
+            border: none;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        }
+
+        .icon-box {
+            width: 60px;
+            height: 60px;
+            background-color: var(--icon-bg);
+            color: var(--icon-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            border: 2px solid transparent;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. WIDGET DO VLIBRAS -->
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper>
+            <div class="vw-plugin-top-wrapper"></div>
+        </div>
+    </div>
+
+    <!-- Cabeçalho -->
+    <div class="header-acessibilidade shadow-sm" tabindex="0">
+        <div class="container">
+            <i class="bi bi-universal-access-circle mb-3 d-inline-block" aria-hidden="true"></i>
+            <h1 class="fw-bold mb-3">Acessibilidade na E-library</h1>
+            <p class="lead mb-0 opacity-75">Compromisso com a inclusão e o acesso à informação para todos.</p>
+        </div>
+    </div>
+
+    <!-- Navegação de Retorno -->
+    <div class="container mt-4">
+        <a href="home-aluno.html" class="btn btn-outline-secondary rounded-pill px-4" aria-label="Voltar para a página inicial do aluno">
+            <i class="bi bi-arrow-left me-2"></i> Voltar ao Painel
+        </a>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="container py-5">
+        
+        <!-- 2. PAINEL DE CONTROLES REAIS DE ACESSIBILIDADE -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card shadow-sm border-0 rounded-4 p-4 text-center" style="background-color: var(--bg-card);">
+                    <h4 class="fw-bold text-dark mb-4" tabindex="0">Painel de Ferramentas</h4>
+                    <p class="text-muted mb-4">Utilize os botões abaixo para ajustar a visualização desta e de outras páginas do sistema.</p>
+                    
+                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+                        <button class="btn btn-primary px-4 rounded-pill fw-semibold" onclick="alterarFonte(1)" aria-label="Aumentar o tamanho do texto">
+                            <i class="bi bi-zoom-in me-2"></i> Aumentar Fonte (A+)
+                        </button>
+                        <button class="btn btn-primary px-4 rounded-pill fw-semibold" onclick="alterarFonte(-1)" aria-label="Diminuir o tamanho do texto">
+                            <i class="bi bi-zoom-out me-2"></i> Diminuir Fonte (A-)
+                        </button>
+                        <button class="btn btn-outline-secondary px-4 rounded-pill fw-semibold" onclick="alterarFonte(0)" aria-label="Restaurar o tamanho original do texto">
+                            <i class="bi bi-fonts me-2"></i> Tamanho Padrão
+                        </button>
+                        <button class="btn btn-dark px-4 rounded-pill fw-semibold" onclick="toggleAltoContraste()" aria-label="Ativar ou desativar o modo de alto contraste">
+                            <i class="bi bi-circle-half me-2"></i> Alto Contraste
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-12 mb-4">
+                <div class="card shadow-sm border-0 rounded-4 p-4" tabindex="0">
+                    <h3 class="fw-bold text-dark border-bottom pb-3 mb-4">Nosso Compromisso</h3>
+                    <p>A <strong>E-library</strong> foi desenvolvida seguindo as melhores práticas de acessibilidade web, inspirando-se nas diretrizes WCAG (Web Content Accessibility Guidelines). Nosso objetivo é garantir que estudantes, professores e funcionários tenham a melhor experiência possível de navegação no acervo da biblioteca, independentemente de suas condições físicas ou cognitivas.</p>
+                </div>
+            </div>
+
+            <!-- Card 1: Teclado -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card feature-card shadow-sm p-4" tabindex="0">
+                    <div class="icon-box">
+                        <i class="bi bi-keyboard" aria-hidden="true"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark">Navegação por Teclado</h5>
+                    <p class="text-muted small">Nossa interface é estruturada para permitir navegação completa usando a tecla <code>Tab</code>, facilitando o uso para pessoas com deficiência motora que não utilizam mouse.</p>
+                </div>
+            </div>
+
+            <!-- Card 2: Contraste -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card feature-card shadow-sm p-4" tabindex="0">
+                    <div class="icon-box" style="background-color: #fff3cd; color: #856404;">
+                        <i class="bi bi-circle-half" aria-hidden="true"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark">Alto Contraste</h5>
+                    <p class="text-muted small">Utilize os botões no painel acima para alternar as cores do site, garantindo maior legibilidade para pessoas com baixa visão ou daltonismo.</p>
+                </div>
+            </div>
+
+            <!-- Card 3: Leitor de Telas -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card feature-card shadow-sm p-4" tabindex="0">
+                    <div class="icon-box" style="background-color: #d4edda; color: #155724;">
+                        <i class="bi bi-volume-up-fill" aria-hidden="true"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark">Leitores de Tela</h5>
+                    <p class="text-muted small">O código da plataforma possui atributos semânticos adequados, garantindo que usuários cegos possam navegar usando NVDA, JAWS ou VoiceOver.</p>
+                </div>
+            </div>
+
+            <!-- Card 4: VLibras -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card feature-card shadow-sm p-4" tabindex="0">
+                    <div class="icon-box" style="background-color: #f8d7da; color: #721c24;">
+                        <i class="bi bi-person-video2" aria-hidden="true"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark">Suporte a Libras</h5>
+                    <p class="text-muted small">A página já está integrada com o plugin nacional <strong>VLibras</strong>. Clique no ícone no canto direito da tela para ativar o tradutor para a Língua Brasileira de Sinais.</p>
+                </div>
+            </div>
+
+            <!-- Card 5: Textos e Zoom -->
+            <div class="col-md-6 col-lg-8">
+                <div class="card feature-card shadow-sm p-4" tabindex="0">
+                    <div class="icon-box" style="background-color: #e2e3e5; color: #383d41;">
+                        <i class="bi bi-zoom-in" aria-hidden="true"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark">Tamanho de Texto</h5>
+                    <p class="text-muted small">O design responsivo permite o aumento do tamanho da fonte dinamicamente através do painel de ferramentas acima, sem perder conteúdo ou funcionalidade.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Rodapé -->
+    <div class="bg-dark text-white text-center py-4 mt-4">
+        <p class="mb-0 small opacity-75">&copy; 2026 E-library. Todos os direitos reservados. Promovendo acesso inclusivo ao conhecimento.</p>
+    </div>
+    <!-- Início da estrutura do VLibras -->
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+            <div vw-plugin-wrapper>
+            <div class="vw-plugin-top-wrapper"></div>
+        </div>
+    </div>
+<!-- Fim da estrutura do VLibras -->
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- 3. SCRIPTS FUNCIONAIS -->
+    <!-- Script do VLibras -->
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>
+        // Inicializa o VLibras
+        new window.VLibras.Widget('https://vlibras.gov.br/app');
+
+        // Lógica de Alto Contraste e Fonte
+        let tamanhoFonteAtual = 16; 
+
+        function aplicarAcessibilidadeSalva() {
+            const fonteSalva = localStorage.getItem('acessibilidade_fonte');
+            if (fonteSalva) {
+                tamanhoFonteAtual = parseInt(fonteSalva);
+                document.documentElement.style.fontSize = tamanhoFonteAtual + 'px';
+            }
+
+            const contrasteSalvo = localStorage.getItem('acessibilidade_contraste');
+            if (contrasteSalvo === 'true') {
+                document.body.classList.add('alto-contraste');
+            }
+        }
+
+        function alterarFonte(acao) {
+            if (acao === 1 && tamanhoFonteAtual < 24) { 
+                tamanhoFonteAtual += 2;
+            } else if (acao === -1 && tamanhoFonteAtual > 12) { 
+                tamanhoFonteAtual -= 2;
+            } else if (acao === 0) { 
+                tamanhoFonteAtual = 16;
+            }
+            
+            document.documentElement.style.fontSize = tamanhoFonteAtual + 'px';
+            localStorage.setItem('acessibilidade_fonte', tamanhoFonteAtual);
+        }
+
+        function toggleAltoContraste() {
+            document.body.classList.toggle('alto-contraste');
+            const ativado = document.body.classList.contains('alto-contraste');
+            localStorage.setItem('acessibilidade_contraste', ativado);
+        }
+
+        // Aplica as configurações assim que a página carrega
+        window.addEventListener('DOMContentLoaded', aplicarAcessibilidadeSalva);
+    </script>
+</body>
+</html>
