@@ -85,7 +85,7 @@
         // INICIALIZAÇÃO DA PÁGINA
         document.addEventListener('DOMContentLoaded', () => {
             mudarAba('emprestimos', { currentTarget: document.querySelector('.nav-link.active') });
-            carregarCategorias(); // Carrega as categorias do banco logo ao abrir o site
+            carregarCategorias(); // Carrega as categorias REAIS do banco logo ao abrir o site
         });
 
         // NAVEGAÇÃO DE ABAS
@@ -147,7 +147,7 @@
                             </button>
                         </form>
                     </div>`;
-                carregarCategorias(); // Atualiza o dropdown caso tenha criado uma nova antes de abrir a aba
+                carregarCategorias(); // Atualiza o dropdown dinâmico
 
             } else if (aba === 'tabelas') {
                 container.innerHTML = `
@@ -192,7 +192,7 @@
                                                 </tr>
                                             </thead>
                                             <tbody id="lista-categorias-admin">
-                                                <tr><td colspan="3" class="text-center text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando...</td></tr>
+                                                <tr><td colspan="3" class="text-center text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando do banco de dados...</td></tr>
                                             </tbody>
                                         </table>
                                     </div>
@@ -223,10 +223,10 @@
             };
         }
 
-        // --- BUSCAR E PREENCHER CATEGORIAS (Tabela e Dropdown) ---
+        // --- BUSCAR E PREENCHER CATEGORIAS REAIS DO SUPABASE (Tabela e Dropdown) ---
         async function carregarCategorias() {
             try {
-                // Busca direto do banco para popular a interface rapidamente
+                // Busca direto do banco para garantir que nada é fake
                 const { data: categorias, error } = await window.supabase
                     .from('categorias')
                     .select('*')
@@ -246,7 +246,7 @@
                 }
 
                 categorias.forEach(cat => {
-                    // Preenche a tabela (se estiver na aba Tabelas)
+                    // Preenche a tabela real
                     if(tbody) {
                         tbody.innerHTML += `
                             <tr>
@@ -260,7 +260,7 @@
                             </tr>
                         `;
                     }
-                    // Preenche o Select (se estiver na aba Exemplares)
+                    // Preenche o Select dinâmico
                     if(selectLivro) {
                         selectLivro.innerHTML += `<option value="${cat.id}">${cat.nome}</option>`;
                     }
@@ -269,11 +269,11 @@
             } catch (error) {
                 console.error("Erro ao carregar categorias:", error);
                 const tbody = document.getElementById('lista-categorias-admin');
-                if(tbody) tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger">Erro ao carregar do banco.</td></tr>';
+                if(tbody) tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger">Erro ao carregar do banco de dados.</td></tr>';
             }
         }
 
-        // 1. CARREGAR EMPRÉSTIMOS (Aba Empréstimos)
+        // 1. CARREGAR EMPRÉSTIMOS
         async function carregarEmprestimos() {
             try {
                 const response = await fetch(`${BACKEND_URL}/api/emprestimos/solicitados`, {
@@ -370,7 +370,7 @@
             }
         }
 
-        // 4. CADASTRAR CATEGORIA
+        // 4. CADASTRAR CATEGORIA (Com a correção de sintaxe!)
         async function cadastrarCategoria(event) {
             event.preventDefault();
             const btnSalvar = document.getElementById('btnSalvarCategoria');
@@ -391,9 +391,10 @@
                 if (response.ok) {
                     alert(`Categoria criada com sucesso!`);
                     document.getElementById('formCadastroCategoria').reset();
-                    carregarCategorias(); // Atualiza a tabela na mesma hora!
+                    carregarCategorias(); 
                 } else {
-                    alert('Erro ao processar criação da categoria.');
+                    const erroDetalhado = await response.text();
+                    alert(`O backend recusou a criação.\nCódigo do Erro: ${response.status}\nDetalhe: ${erroDetalhado}`);
                 }
             } catch (error) {
                 alert('Erro de rede ao contactar o servidor.');
@@ -401,6 +402,7 @@
                 btnSalvar.disabled = false;
             }
         }
+        
 
         // --- SISTEMA DE LOGOUT CORRIGIDO ---
         document.getElementById('btnLogout').addEventListener('click', async (e) => {
