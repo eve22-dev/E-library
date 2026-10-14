@@ -18,6 +18,15 @@
 </head>
 <body>
 
+    <!-- VLIBRAS -->
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper>
+            <div class="vw-plugin-top-wrapper"></div>
+        </div>
+    </div>
+
+    <!-- BARRA LATERAL -->
     <div class="sidebar p-4 d-flex flex-column justify-content-between">
         <div>
             <h4 class="fw-bold mb-4 text-white"><i class="bi bi-book-half me-2"></i>E-library</h4>
@@ -45,38 +54,41 @@
         </div>
         <div>
             <hr class="border-secondary opacity-50">
-            <button id="btnLogout" class="btn btn-outline-light w-100 rounded-pill btn-sm"><i class="bi bi-box-arrow-right me-2"></i> Sair</button>
+            <!-- BOTÃO SAIR CORRIGIDO -->
+            <button id="btnLogout" class="btn btn-outline-light w-100 rounded-pill btn-sm fw-bold">
+                <i class="bi bi-box-arrow-right me-2"></i> Sair
+            </button>
         </div>
     </div>
 
-    <!-- Conteúdo Principal Dinâmico -->
+    <!-- CONTEÚDO PRINCIPAL DINÂMICO -->
     <div class="main-content">
         <div id="conteudoDinamico">
             <!-- Renderizado via JS -->
         </div>
     </div>
 
+    <!-- SCRIPTS E INTEGRAÇÕES -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
     <script>
+        // CONFIGURAÇÕES SUPABASE E BACKEND
         const SUPABASE_URL = 'https://axeyrwilhvbzlfukivhu.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4ZXlyd2lsaHZiemxmdWtpdmh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NDE0OTYsImV4cCI6MjA5NDExNzQ5Nn0.8-hLkiSR6BPck-DtkiZiwMA5KRtfHUhjN61g4QPE68o';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                window.supabase = windowSupabase;
+        window.supabase = supabaseClient;
+        
+        new window.VLibras.Widget('https://vlibras.gov.br/app');
 
-                new window.VLibras.Widget('https://vlibras.gov.br/app');
+        const BACKEND_URL = "https://e-library-backend-qytl.onrender.com";
 
-                    const BACKEND_URL = "https://e-library-backend-qytl.onrender.com";
+        // INICIALIZAÇÃO DA PÁGINA
+        document.addEventListener('DOMContentLoaded', () => {
+            mudarAba('emprestimos', { currentTarget: document.querySelector('.nav-link.active') });
+            carregarCategorias(); // Carrega as categorias do banco logo ao abrir o site
+        });
 
-            let tamanhoFonteAtual = 16;
-        function aplicarAcessibilidadeSalva() {
-            const fonteSalva = localStorage.getItem('acessibilidade_fonte');
-            if (fonteSalva) { tamanhoFonteAtual = parseInt(fonteSalva); document.documentElement.style.fontSize = tamanhoFonteAtual + 'px'; }
-            const contrasteSalvo = localStorage.getItem('acessibilidade_contraste');
-            if (contrasteSalvo === 'true') document.body.classList.add('alto-contraste');
-        }
-
-        document.addEventListener('DOMContentLoaded', () => mudarAba('emprestimos', { currentTarget: document.querySelector('.nav-link.active') }));
-
+        // NAVEGAÇÃO DE ABAS
         function mudarAba(aba, event) {
             if(event && event.currentTarget) {
                 document.querySelectorAll('.sidebar .nav-link').forEach(link => link.classList.remove('active'));
@@ -91,7 +103,7 @@
                     <p class="text-muted">Acompanhe as retiradas solicitadas no acervo.</p>
                     <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
                         <div id="listaEmprestimos" class="table-responsive">
-                            <p class="text-muted">Carregando dados do banco de dados...</p>
+                            <p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando dados do banco de dados...</p>
                         </div>
                     </div>`;
                 carregarEmprestimos();
@@ -115,44 +127,80 @@
                                     <label class="form-label fw-semibold">Editora</label>
                                     <input type="text" id="livroEditora" class="form-control" required>
                                 </div>
-                                <div class="col-md-4 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <label class="form-label fw-semibold">ISBN</label>
                                     <input type="text" id="livroIsbn" class="form-control" placeholder="Opcional">
                                 </div>
-                                <div class="col-md-4 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <label class="form-label fw-semibold">Qtd. Total (Estoque)</label>
                                     <input type="number" id="livroQtd" class="form-control" value="1" min="1" required>
                                 </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label fw-semibold">ID da Categoria</label>
-                                    <input type="text" id="livroCategoriaId" class="form-control" placeholder="UUID da categoria" required>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold text-primary">Categoria do Livro</label>
+                                    <select id="livroCategoriaId" class="form-select border-primary" required>
+                                        <option value="" disabled selected>Carregando categorias...</option>
+                                    </select>
                                 </div>
                             </div>
-                            <button type="submit" id="btnSalvarLivro" class="btn btn-primary mt-3 px-4 shadow-sm">
+                            <button type="submit" id="btnSalvarLivro" class="btn btn-primary mt-3 px-4 shadow-sm fw-bold">
                                 <i class="bi bi-check-lg"></i> Salvar Livro no Sistema
                             </button>
                         </form>
                     </div>`;
+                carregarCategorias(); // Atualiza o dropdown caso tenha criado uma nova antes de abrir a aba
 
             } else if (aba === 'tabelas') {
                 container.innerHTML = `
-                    <h2 class="fw-bold text-dark">Tabelas e Códigos (Categorias)</h2>
-                    <p class="text-muted">Crie categorias para organizar o acervo.</p>
-                    <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
-                        <form id="formCadastroCategoria" onsubmit="cadastrarCategoria(event)">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Nome da Categoria</label>
-                                <input type="text" id="catNome" class="form-control" required>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="fw-bold text-dark mb-0">Tabelas e Códigos (Categorias)</h2>
+                            <p class="text-muted">Crie e visualize categorias para organizar o acervo.</p>
+                        </div>
+                    </div>
+                    <div class="row g-4">
+                        <div class="col-md-5">
+                            <div class="card shadow-sm border-0 bg-white rounded-4 h-100">
+                                <div class="card-body p-4">
+                                    <h5 class="fw-bold mb-3"><i class="bi bi-plus-circle me-2 text-primary"></i>Nova Categoria</h5>
+                                    <form id="formCadastroCategoria" onsubmit="cadastrarCategoria(event)">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold">Nome da Categoria</label>
+                                            <input type="text" id="catNome" class="form-control" required placeholder="Ex: Engenharia">
+                                        </div>
+                                        <div class="mb-4">
+                                            <label class="form-label fw-semibold">Descrição</label>
+                                            <textarea id="catDesc" class="form-control" rows="3" placeholder="Opcional"></textarea>
+                                        </div>
+                                        <button type="submit" id="btnSalvarCategoria" class="btn btn-primary shadow-sm w-100 fw-bold">
+                                            <i class="bi bi-save me-1"></i> Criar Categoria
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Descrição</label>
-                                <textarea id="catDesc" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="card shadow-sm border-0 rounded-4 h-100 bg-white">
+                                <div class="card-body p-4">
+                                    <h5 class="fw-bold mb-3"><i class="bi bi-tags me-2 text-primary"></i>Categorias Cadastradas</h5>
+                                    <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                                        <table class="table table-hover align-middle">
+                                            <thead class="table-light sticky-top">
+                                                <tr>
+                                                    <th>Nome</th>
+                                                    <th>Descrição</th>
+                                                    <th class="text-end">Ações</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="lista-categorias-admin">
+                                                <tr><td colspan="3" class="text-center text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando...</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
-                            <button type="submit" id="btnSalvarCategoria" class="btn btn-primary shadow-sm">
-                                <i class="bi bi-save"></i> Criar Categoria
-                            </button>
-                        </form>
+                        </div>
                     </div>`;
+                carregarCategorias();
 
             } else if (aba === 'mensagens') {
                 container.innerHTML = `
@@ -167,8 +215,7 @@
             }
         }
 
-        // --- INTEGRAÇÃO COM O BACKEND JAVA ---
-
+        // FUNÇÕES DE COMUNICAÇÃO COM O JAVA E SUPABASE
         function getAuthHeaders() {
             return {
                 'Content-Type': 'application/json',
@@ -176,10 +223,59 @@
             };
         }
 
-        // 1. CARREGAR EMPRÉSTIMOS SOLICITADOS
+        // --- BUSCAR E PREENCHER CATEGORIAS (Tabela e Dropdown) ---
+        async function carregarCategorias() {
+            try {
+                // Busca direto do banco para popular a interface rapidamente
+                const { data: categorias, error } = await window.supabase
+                    .from('categorias')
+                    .select('*')
+                    .order('nome', { ascending: true });
+
+                if (error) throw error;
+
+                const tbody = document.getElementById('lista-categorias-admin');
+                const selectLivro = document.getElementById('livroCategoriaId');
+                
+                if(tbody) tbody.innerHTML = '';
+                if(selectLivro) selectLivro.innerHTML = '<option value="" disabled selected>Selecione uma categoria...</option>';
+
+                if (categorias.length === 0) {
+                    if(tbody) tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted small">Nenhuma categoria cadastrada.</td></tr>';
+                    return;
+                }
+
+                categorias.forEach(cat => {
+                    // Preenche a tabela (se estiver na aba Tabelas)
+                    if(tbody) {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td class="fw-semibold text-dark">${cat.nome}</td>
+                                <td class="small text-muted text-truncate" style="max-width: 150px;" title="${cat.descricao || ''}">${cat.descricao || '-'}</td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="navigator.clipboard.writeText('${cat.id}'); alert('UUID Copiado!');" title="Copiar ID: ${cat.id}">
+                                        <i class="bi bi-clipboard"></i> Copiar UUID
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                    // Preenche o Select (se estiver na aba Exemplares)
+                    if(selectLivro) {
+                        selectLivro.innerHTML += `<option value="${cat.id}">${cat.nome}</option>`;
+                    }
+                });
+
+            } catch (error) {
+                console.error("Erro ao carregar categorias:", error);
+                const tbody = document.getElementById('lista-categorias-admin');
+                if(tbody) tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger">Erro ao carregar do banco.</td></tr>';
+            }
+        }
+
+        // 1. CARREGAR EMPRÉSTIMOS (Aba Empréstimos)
         async function carregarEmprestimos() {
             try {
-                // Chama a rota específica que criamos no back-end
                 const response = await fetch(`${BACKEND_URL}/api/emprestimos/solicitados`, {
                     headers: getAuthHeaders()
                 });
@@ -189,22 +285,22 @@
                 const emprestimos = await response.json();
 
                 if(emprestimos.length === 0) {
-                    divLista.innerHTML = '<p class="text-muted mb-0">Nenhuma reserva pendente de retirada.</p>';
+                    divLista.innerHTML = '<p class="text-muted mb-0"><i class="bi bi-check-circle text-success me-2"></i>Nenhuma reserva pendente de retirada.</p>';
                     return;
                 }
 
-                let tabelaHTML = `<table class="table align-middle">
-                    <thead><tr><th>Livro (ID)</th><th>Utilizador (ID)</th><th>Data Prevista</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
+                let tabelaHTML = `<table class="table align-middle table-hover">
+                    <thead class="table-light"><tr><th>Livro</th><th>Utilizador (ID)</th><th>Data Prevista</th><th>Status</th><th class="text-end">Ações</th></tr></thead><tbody>`;
                 
                 emprestimos.forEach(emp => {
                     tabelaHTML += `<tr>
-                        <td class="fw-semibold text-truncate" style="max-width: 150px;" title="${emp.livro?.id}">${emp.livro?.titulo || emp.livro?.id}</td>
-                        <td class="text-truncate" style="max-width: 150px;" title="${emp.usuario?.id}">${emp.usuario?.nome || emp.usuario?.id}</td>
-                        <td>${emp.dataPrevista || 'N/A'}</td>
-                        <td><span class="badge bg-warning text-dark">${emp.status.toUpperCase()}</span></td>
-                        <td>
-                            <button class="btn btn-success action-btn" onclick="marcarComoRetirado('${emp.id}')">
-                                <i class="bi bi-check2-circle"></i> Entregar Livro
+                        <td class="fw-semibold text-dark text-truncate" style="max-width: 180px;" title="${emp.livro?.id}">${emp.livro?.titulo || emp.livro?.id}</td>
+                        <td class="text-muted small text-truncate" style="max-width: 150px;" title="${emp.usuario?.id}">${emp.usuario?.nome || emp.usuario?.id}</td>
+                        <td class="small">${emp.dataPrevista || 'N/A'}</td>
+                        <td><span class="badge bg-warning text-dark px-3 py-2 rounded-pill">${emp.status.toUpperCase()}</span></td>
+                        <td class="text-end">
+                            <button class="btn btn-success action-btn rounded-pill fw-bold" onclick="marcarComoRetirado('${emp.id}')">
+                                <i class="bi bi-check2-circle"></i> Entregar
                             </button>
                         </td>
                     </tr>`;
@@ -213,12 +309,11 @@
                 divLista.innerHTML = tabelaHTML;
 
             } catch (error) {
-                console.error(error);
-                document.getElementById('listaEmprestimos').innerHTML = '<p class="text-danger">Erro ao carregar os empréstimos.</p>';
+                document.getElementById('listaEmprestimos').innerHTML = '<p class="text-danger">Erro ao carregar os empréstimos. Servidor ocupado.</p>';
             }
         }
 
-        // 2. MARCAR COMO RETIRADO (Ação do Bibliotecário)
+        // 2. MARCAR COMO RETIRADO
         async function marcarComoRetirado(id) {
             if(!confirm("Confirmar a entrega física deste livro ao utilizador?")) return;
 
@@ -230,7 +325,7 @@
 
                 if(response.ok) {
                     alert('Status atualizado para RETIRADO com sucesso!');
-                    carregarEmprestimos(); // Recarrega a tabela automaticamente
+                    carregarEmprestimos(); 
                 } else {
                     const erro = await response.text();
                     alert('Erro: ' + erro);
@@ -249,9 +344,9 @@
             const novoLivro = {
                 titulo: document.getElementById('livroTitulo').value,
                 autor: document.getElementById('livroAutor').value,
+                editora: document.getElementById('livroEditora').value,
                 isbn: document.getElementById('livroIsbn').value,
                 qtdTotal: parseInt(document.getElementById('livroQtd').value),
-                // O back-end iguala a qtdDisponivel na Controller
                 categoria: { id: document.getElementById('livroCategoriaId').value }
             };
 
@@ -263,13 +358,13 @@
                 });
 
                 if (response.ok) {
-                    alert('Livro cadastrado com sucesso!');
+                    alert('Livro cadastrado com sucesso e já disponível no catálogo!');
                     document.getElementById('formCadastroLivro').reset();
                 } else {
-                    alert('Erro ao salvar livro. Verifique o ID da Categoria.');
+                    alert('Erro ao salvar livro no Java.');
                 }
             } catch (error) {
-                alert('Erro de rede.');
+                alert('Erro de rede ao contactar o servidor.');
             } finally {
                 btnSalvar.disabled = false;
             }
@@ -287,30 +382,33 @@
             };
 
             try {
-                // Alvo da rota que definimos no Controller do Bibliotecário
-                const response = await fetch(`${BACKEND_URL}/api/bibliotecario/categorias`, {
+                const response = await fetch(`${BACKEND_URL}/api/livros/categorias`, {
                     method: 'POST',
                     headers: getAuthHeaders(),
                     body: JSON.stringify(novaCategoria)
                 });
 
                 if (response.ok) {
-                    const catSalva = await response.json();
-                    alert(`Categoria criada! Guarde este ID para cadastrar os livros: ${catSalva.id}`);
+                    alert(`Categoria criada com sucesso!`);
                     document.getElementById('formCadastroCategoria').reset();
+                    carregarCategorias(); // Atualiza a tabela na mesma hora!
                 } else {
-                    alert('Erro ao criar categoria.');
+                    alert('Erro ao processar criação da categoria.');
                 }
             } catch (error) {
-                alert('Erro de rede.');
+                alert('Erro de rede ao contactar o servidor.');
             } finally {
                 btnSalvar.disabled = false;
             }
         }
 
-        // --- SISTEMA DE LOGOUT ---
-        document.getElementById('btnLogout').addEventListener('click', async () => {
-            await window.supabase.auth.signOut();
+        // --- SISTEMA DE LOGOUT CORRIGIDO ---
+        document.getElementById('btnLogout').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const { error } = await window.supabase.auth.signOut();
+            if (error) {
+                console.error("Erro no logout:", error);
+            }
             localStorage.clear();
             window.location.href = 'index.html';
         });
