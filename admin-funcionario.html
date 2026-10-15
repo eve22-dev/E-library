@@ -39,6 +39,9 @@
                     <a class="nav-link" onclick="mudarAba('exemplares', event)"><i class="bi bi-journal-plus me-2"></i> Cadastro de Exemplares</a>
                 </li>
                 <li class="nav-item mb-2">
+                <a class="nav-link" onclick="mudarAba('acervo', event)"><i class="bi bi-journals me-2"></i> Acervo</a>
+                </li>
+                <li class="nav-item mb-2">
                     <a class="nav-link" onclick="mudarAba('tabelas', event)"><i class="bi bi-table me-2"></i> Tabelas e Códigos</a>
                 </li>
                 <li class="nav-item mb-2">
@@ -148,7 +151,20 @@
                         </form>
                     </div>`;
                 carregarCategorias(); // Atualiza o dropdown dinâmico
-
+                    } else if (aba === 'acervo') {
+    container.innerHTML = `
+        <h2 class="fw-bold text-dark">Acervo</h2>
+        <p class="text-muted">Livros cadastrados e ativos no sistema.</p>
+        <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
+            <div class="input-group mb-3" style="max-width: 500px;">
+                <input type="text" id="buscaAcervo" class="form-control" placeholder="Buscar por título...">
+                <button class="btn btn-primary" onclick="carregarAcervo()"><i class="bi bi-search"></i></button>
+            </div>
+            <div id="listaAcervo" class="table-responsive">
+                <p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando acervo...</p>
+            </div>
+        </div>`;
+    carregarAcervo();
             } else if (aba === 'tabelas') {
                 container.innerHTML = `
                     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -233,6 +249,8 @@
                     .order('nome', { ascending: true });
 
                 if (error) throw error;
+                
+                window.categoriasCache = categorias;
 
                 const tbody = document.getElementById('lista-categorias-admin');
                 const selectLivro = document.getElementById('livroCategoriaId');
@@ -253,9 +271,12 @@
                                 <td class="fw-semibold text-dark">${cat.nome}</td>
                                 <td class="small text-muted text-truncate" style="max-width: 150px;" title="${cat.descricao || ''}">${cat.descricao || '-'}</td>
                                 <td class="text-end">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="navigator.clipboard.writeText('${cat.id}'); alert('UUID Copiado!');" title="Copiar ID: ${cat.id}">
-                                        <i class="bi bi-clipboard"></i> Copiar UUID
-                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="editarCategoria('${cat.id}')">
+                                        <i class="bi bi-pencil"></i> Editar
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="navigator.clipboard.writeText('${cat.id}'); alert('UUID Copiado!');" title="Copiar ID: ${cat.id}">
+                                        <i class="bi bi-clipboard"></i> UUID
+                                        </button>
                                 </td>
                             </tr>
                         `;
@@ -403,6 +424,101 @@
             }
         }
         
+        // LISTAR ACERVO
+const esc = s => String(s ?? '-').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function carregarAcervo() {
+    const div = document.getElementById('listaAcervo');
+    const termo = document.getElementById('buscaAcervo')?.value || '';
+
+    try {
+        const response = await fetch(
+            `${BACKEND_URL}/api/livros/pesquisa?filtro=titulo&termo=${encodeURIComponent(termo)}`,
+            { headers: getAuthHeaders() }
+        );
+        if (!response.ok) throw new Error('Falha na API');
+        const livros = await response.json();
+
+        if (livros.length === 0) {
+            div.innerHTML = '<p class="text-muted mb-0">Nenhum livro encontrado.</p>';
+            return;
+        }
+
+        let html = `<table class="table align-middle table-hover">
+            <thead class="table-light"><tr><th>Título</th><th>Autor</th><th>Editora</th><th>ISBN</th><th>Disponíveis</th><th class="text-end">Ações</th></tr></thead><tbody>`;
+
+        livros.forEach(l => {
+            html += `<tr>
+                <td class="fw-semibold text-dark">${esc(l.titulo)}</td>
+                <td>${esc(l.autor)}</td>
+                <td>${esc(l.editora)}</td>
+                <td class="small text-muted">${esc(l.isbn)}</td>
+                <td>${l.qtdDisponivel} / ${l.qtdTotal}</td>
+                <td class="text-end">
+                    <button class="btn btn-outline-danger action-btn rounded-pill" onclick="desativarLivro('${l.id}')">
+                        <i class="bi bi-slash-circle"></i> Desativar
+                    </button>
+                </td>
+            </tr>`;
+        });
+
+        div.innerHTML = html + '</tbody></table>';
+    } catch (error) {
+        div.innerHTML = '<p class="text-danger">Erro ao carregar o acervo.</p>';
+    }
+}
+
+// DESATIVAR LIVRO (pede o motivo)
+async function desativarLivro(id) {
+    const motivo = prompt('Informe o motivo para desativar este livro:');
+    if (!motivo) { alert('O motivo é obrigatório.'); return; }
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/livros/${id}/desativar`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ motivo })
+        });
+
+        if (response.ok) {
+            alert('Livro desativado com sucesso.');
+            carregarAcervo();
+        } else {
+            alert('Erro: ' + await response.text());
+        }
+    } catch (error) {
+        alert('Erro de comunicação com o servidor.');
+    }
+}
+
+        async function editarCategoria(id) {
+    const cat = (window.categoriasCache || []).find(c => c.id === id);
+    if (!cat) return;
+
+    const nome = prompt('Novo nome da categoria:', cat.nome);
+    if (nome === null) return;
+    if (!nome.trim()) { alert('O nome é obrigatório.'); return; }
+
+    const descricao = prompt('Nova descrição (pode deixar vazia):', cat.descricao || '');
+    if (descricao === null) return;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/livros/categorias/${id}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ nome, descricao })
+        });
+
+        if (response.ok) {
+            alert('Categoria atualizada!');
+            carregarCategorias();
+        } else {
+            alert('Erro: ' + await response.text());
+        }
+    } catch (error) {
+        alert('Erro de comunicação com o servidor.');
+    }
+}
 
         // --- SISTEMA DE LOGOUT CORRIGIDO ---
         document.getElementById('btnLogout').addEventListener('click', async (e) => {

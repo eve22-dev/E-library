@@ -127,6 +127,9 @@
                     <a class="btn btn-outline-light rounded-pill px-4 fw-bold" href="#" id="btnMeuPerfil">
                         <i class="bi bi-person-circle me-1"></i> Meu Perfil
                     </a>
+                    <button class="btn btn-outline-light rounded-pill px-4 fw-bold" id="btnSair">
+                        <i class="bi bi-box-arrow-right me-1"></i> Sair
+                    </button>
                 </div>
             </div>
         </nav>
@@ -218,7 +221,12 @@
             document.body.classList.toggle('alto-contraste');
             localStorage.setItem('acessibilidade_contraste', document.body.classList.contains('alto-contraste'));
         }
-
+        async function sair() {
+            await window.supabase.auth.signOut();
+            ['authToken', 'userId', 'userRole'].forEach(k => localStorage.removeItem(k));
+        window.location.href = 'index.html';
+        }
+        document.getElementById('btnSair').addEventListener('click', sair);
         // --- NAVEGAÇÃO PERFIL ---
         async function irParaPerfil(e) {
             e.preventDefault();
@@ -243,7 +251,13 @@
                 const url = `${BACKEND_URL}/api/livros/pesquisa?filtro=${filtro}&termo=${encodeURIComponent(termo)}`;
                 const resposta = await fetch(url, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
-            });
+                });
+
+                if (resposta.status === 401) {
+                 alert('Sua sessão expirou. Faça login novamente.');
+                sair();
+                return;
+                }
                 if (!resposta.ok) throw new Error("Erro de conexão");
                 const livros = await resposta.json();
                 container.innerHTML = ''; 
