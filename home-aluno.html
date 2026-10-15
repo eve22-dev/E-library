@@ -241,7 +241,9 @@
 
             try {
                 const url = `${BACKEND_URL}/api/livros/pesquisa?filtro=${filtro}&termo=${encodeURIComponent(termo)}`;
-                const resposta = await fetch(url);
+                const resposta = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+            });
                 if (!resposta.ok) throw new Error("Erro de conexão");
                 const livros = await resposta.json();
                 container.innerHTML = ''; 
