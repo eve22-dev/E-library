@@ -234,7 +234,7 @@
             if (!session) { alert("Faça login novamente."); window.location.href = "index.html"; return; }
             
             const { data: perfil } = await window.supabase.from('usuarios').select('papel').eq('id', session.user.id).single();
-            if (perfil?.papel === 'aluno') window.location.href = "perfil-aluno.html";
+            if (perfil?.papel === 'aluno' || perfil?.papel === 'professor') window.location.href = "perfil-aluno.html";
             else if (perfil?.papel === 'bibliotecario') window.location.href = "admin-funcionario.html";
         }
         document.getElementById('btnMeuPerfil').addEventListener('click', irParaPerfil);
@@ -274,7 +274,6 @@
                     const cardHTML = `
                         <div class="col-12 col-md-6 col-lg-3">
                             <div class="card h-100 card-livro shadow-sm">
-                                <div class="card-img-placeholder"><i class="bi bi-journal-text"></i></div>
                                 <div class="card-body text-center d-flex flex-column p-3">
                                     <h6 class="fw-bold mb-1 text-truncate" title="${livro.titulo}">${livro.titulo}</h6>
                                     <p class="small text-muted mb-1 text-truncate" title="${livro.autor}">${livro.autor}</p>
@@ -293,114 +292,165 @@
             }
         }
 
-        // --- EFETUAR RESERVA ---
+        // --- EFETUAR RESERVA (o back confere multa, estoque e prazo) ---
         async function efetuarReserva(livroId, tituloLivro, btnClicado) {
-            const { data: { session } } = await window.supabase.auth.getSession();
-            if (!session) { alert("Você precisa estar logado para reservar."); return; }
-
-            const { data: perfil } = await window.supabase.from('usuarios').select('papel').eq('id', session.user.id).single();
-            const diasEmprestimo = perfil?.papel === 'professor' ? 30 : 14;
-
-            const dataRetirada = new Date();
-            const dataPrevista = new Date();
-            dataPrevista.setDate(dataPrevista.getDate() + diasEmprestimo);
+            btnClicado.disabled = true;
 
             try {
-                const { error } = await window.supabase
-                    .from('emprestimos')
-                    .insert([{ 
-                        user_id: session.user.id, 
-                        livro_id: livroId,
-                        status: 'solicitado', 
-                        data_retirada: dataRetirada.toISOString().split('T')[0],
-                        data_prevista: dataPrevista.toISOString().split('T')[0]
-                    }]);
+                const resposta = await fetch(`${BACKEND_URL}/api/emprestimos/reservar`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ livroId })
+                });
 
-                if (error) throw error;
-
-                btnClicado.textContent = 'SOLICITADO';
-                btnClicado.className = 'btn btn-sm w-100 mt-auto btn-success disabled';
-                btnClicado.disabled = true;
-                alert(`Solicitação de "${tituloLivro}" enviada! Passe no balcão da biblioteca para retirar.`);
-                
-                carregarAvisosVencimento(); 
-                
-            } catch (error) {
-                alert("Erro ao realizar a reserva. Verifique se o livro está disponível.");
-            }
-        }
-
-        // --- CARREGAR AVISOS DE VENCIMENTO EM LINHA ---
-        async function carregarAvisosVencimento() {
-            const container = document.getElementById('lista-avisos-dinamica');
-            const { data: { session } } = await window.supabase.auth.getSession();
-            if (!session) return;
-
-            try {
-                const { data: emprestimos, error } = await window.supabase
-                    .from('emprestimos')
-                    .select('id, data_prevista, livros(titulo)')
-                    .eq('user_id', session.user.id)
-                    .eq('status', 'retirado') 
-                    .order('data_prevista', { ascending: true });
-
-                if (error) throw error;
-
-                if (emprestimos.length === 0) {
-                    container.innerHTML = '<div class="col-12"><div class="alert alert-light text-center border small text-muted w-100 mb-0"><i class="bi bi-check-circle text-success me-2"></i>Você não tem empréstimos ativos pendentes de devolução.</div></div>';
+                if (resposta.status === 401) {
+                    alert('Sua sessão expirou. Faça login novamente.');
+                    sair();
                     return;
                 }
 
-                let avisosHTML = '';
-                const hoje = new Date();
-                hoje.setHours(0,0,0,0);
+                if (!resposta.ok) {
+                    alert(await resposta.text() || 'Não foi possível realizar a reserva.');
+                    btnClicado.disabled = false;
+                    buscarLivros();
+                    return;
+                }
 
-                emprestimos.forEach(emp => {
-                    const dataDevolucao = new Date(emp.data_prevista);
-                    dataDevolucao.setHours(0,0,0,0);
-                    
-                    const diferencaTempo = dataDevolucao.getTime() - hoje.getTime();
-                    const diferencaDias = Math.ceil(diferencaTempo / (1000 * 3600 * 24));
-                    const dataFormatada = dataDevolucao.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
-                    const titulo = emp.livros?.titulo || 'Livro ID: ' + emp.livro_id;
+                alert(`Solicitação de "${tituloLivro}" enviada! Passe no balcão da biblioteca para retirar.`);
+                buscarLivros();              // atualiza o "disponíveis"
+                carregarAvisosVencimento();
 
-                    let classeCard = 'alerta-normal';
-                    let tagAviso = '';
-                    let icone = '<i class="bi bi-calendar-check text-success"></i>';
-
-                    if (diferencaDias < 0) {
-                        classeCard = 'alerta-urgente border-danger';
-                        tagAviso = `<span class="badge bg-danger">Atrasado (${Math.abs(diferencaDias)} dias)</span>`;
-                        icone = '<i class="bi bi-exclamation-circle-fill text-danger"></i>';
-                    } else if (diferencaDias <= 3) {
-                        classeCard = 'alerta-urgente';
-                        tagAviso = `<span class="badge bg-warning text-dark">Vence em ${diferencaDias} dia(s)</span>`;
-                        icone = '<i class="bi bi-bell-fill text-warning"></i>';
-                    } else {
-                        tagAviso = `<span class="badge bg-light text-secondary border">No prazo</span>`;
-                    }
-
-                    avisosHTML += `
-                        <div class="col-12 col-md-6 col-lg-4 mb-2">
-                            <div class="card card-alerta p-3 shadow-sm bg-light ${classeCard}">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h6 class="fw-bold mb-0 text-dark text-truncate" title="${titulo}" style="font-size: 0.9rem;">${icone} ${titulo}</h6>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mt-1">
-                                    <span class="small text-muted fw-semibold">Devolver: ${dataFormatada}</span>
-                                    ${tagAviso}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                container.innerHTML = avisosHTML;
-
-            } catch (error) {
-                container.innerHTML = '<p class="text-danger small">Erro ao carregar avisos.</p>';
+            } catch (erro) {
+                alert('Erro de comunicação com o servidor.');
+                btnClicado.disabled = false;
             }
         }
+
+// --- CARREGAR AVISOS DE VENCIMENTO (só quase vencidos ou vencidos) ---
+const VALOR_MULTA_DIA = 2; // R$ por dia de atraso
+const formatarReal = v => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+async function carregarAvisosVencimento() {
+    const container = document.getElementById('lista-avisos-dinamica');
+    const { data: { session } } = await window.supabase.auth.getSession();
+    if (!session) return;
+
+    try {
+        const { data: emprestimos, error } = await window.supabase
+            .from('emprestimos')
+            .select('id, data_prevista, renegociacao_status, livros(titulo)')
+            .eq('user_id', session.user.id)
+            .in('status', ['retirado', 'atrasado'])
+            .order('data_prevista', { ascending: true });
+
+        if (error) throw error;
+
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+
+        // Só entram os que vencem em até 3 dias ou que já venceram
+        const alertas = emprestimos
+            .map(emp => ({ ...emp, dias: Math.round((new Date(emp.data_prevista + 'T00:00:00') - hoje) / 86400000) }))
+            .filter(emp => emp.dias <= 3);
+
+        // Aviso de multa pendente (vem do back)
+        let avisoMulta = '';
+        try {
+            const r = await fetch(`${BACKEND_URL}/api/multas/minhas`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+            });
+            if (r.ok) {
+                const pendentes = (await r.json()).filter(m => m.status === 'pendente');
+                if (pendentes.length > 0) {
+                    const total = pendentes.reduce((soma, m) => soma + Number(m.valor), 0);
+                    avisoMulta = `<div class="col-12"><div class="alert alert-danger d-flex justify-content-between align-items-center mb-0">
+                        <span><i class="bi bi-cash-coin me-2"></i>Você tem <strong>${formatarReal(total)}</strong> em multas pendentes.</span>
+                        <a href="meus-emprestimos.html" class="btn btn-sm btn-danger rounded-pill">Pagar agora</a>
+                    </div></div>`;
+                }
+            }
+        } catch (e) { /* sem aviso de multa */ }
+
+        if (alertas.length === 0) {
+            container.innerHTML = avisoMulta + '<div class="col-12"><div class="alert alert-light text-center border small text-muted w-100 mb-0"><i class="bi bi-check-circle text-success me-2"></i>Nenhum empréstimo perto do vencimento.</div></div>';
+            return;
+        }
+
+        let avisosHTML = avisoMulta;
+
+        alertas.forEach(emp => {
+            const titulo = emp.livros?.titulo || 'Livro';
+            const dataFormatada = new Date(emp.data_prevista + 'T00:00:00').toLocaleDateString('pt-BR');
+
+            let classeCard = 'alerta-urgente';
+            let tag = '';
+            let icone = '<i class="bi bi-bell-fill text-warning"></i>';
+            let multa = '';
+
+            if (emp.dias < 0) {
+                classeCard = 'alerta-urgente border-danger';
+                tag = `<span class="badge bg-danger">Atrasado (${Math.abs(emp.dias)} dia(s))</span>`;
+                icone = '<i class="bi bi-exclamation-circle-fill text-danger"></i>';
+                multa = `<p class="small text-danger fw-semibold mb-0 mt-2">Multa acumulada: ${formatarReal(Math.abs(emp.dias) * VALOR_MULTA_DIA)} (${formatarReal(VALOR_MULTA_DIA)} por dia)</p>`;
+            } else {
+                tag = `<span class="badge bg-warning text-dark">${emp.dias === 0 ? 'Vence hoje' : 'Vence em ' + emp.dias + ' dia(s)'}</span>`;
+            }
+
+            let acao = '';
+            if (emp.renegociacao_status === 'pendente') {
+                acao = '<span class="badge bg-info text-dark mt-2">Renegociação aguardando aprovação</span>';
+            } else if (emp.renegociacao_status === 'recusada') {
+                acao = '<span class="badge bg-secondary mt-2">Renegociação recusada</span>';
+            } else if (!emp.renegociacao_status) {
+                acao = `<button class="btn btn-outline-primary btn-sm rounded-pill w-100 mt-2" onclick="renegociar('${emp.id}')"><i class="bi bi-arrow-repeat me-1"></i>Renegociar prazo</button>`;
+            }
+
+            avisosHTML += `
+                <div class="col-12 col-md-6 col-lg-4 mb-2">
+                    <div class="card card-alerta p-3 shadow-sm bg-light ${classeCard}">
+                        <h6 class="fw-bold mb-2 text-dark text-truncate" title="${titulo}" style="font-size: 0.9rem;">${icone} ${titulo}</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small text-muted fw-semibold">Devolver: ${dataFormatada}</span>
+                            ${tag}
+                        </div>
+                        ${multa}
+                        ${acao}
+                    </div>
+                </div>`;
+        });
+
+        container.innerHTML = avisosHTML;
+
+    } catch (error) {
+        container.innerHTML = '<p class="text-danger small">Erro ao carregar avisos.</p>';
+    }
+}
+
+// --- RENEGOCIAR PRAZO ---
+async function renegociar(id) {
+    if (!confirm('Pedir mais prazo para este livro? O bibliotecário precisa aprovar.')) return;
+
+    try {
+        const resposta = await fetch(`${BACKEND_URL}/api/emprestimos/${id}/renegociar`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+        });
+
+        if (resposta.status === 401) {
+            alert('Sua sessão expirou. Faça login novamente.');
+            sair();
+            return;
+        }
+
+        alert(await resposta.text());
+        if (resposta.ok) carregarAvisosVencimento();
+    } catch (erro) {
+        alert('Erro de comunicação com o servidor.');
+    }
+}
 
         document.addEventListener('DOMContentLoaded', () => {
             aplicarAcessibilidadeSalva();

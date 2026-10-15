@@ -147,15 +147,41 @@
             const container = document.getElementById('conteudoDinamico');
             
             if (aba === 'emprestimos') {
-                container.innerHTML = `
-                    <h2 class="fw-bold text-dark">Gerenciamento de Empréstimos</h2>
-                    <p class="text-muted">Acompanhe as retiradas solicitadas no acervo.</p>
-                    <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
-                        <div id="listaEmprestimos" class="table-responsive">
-                            <p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando dados do banco de dados...</p>
-                        </div>
-                    </div>`;
-                carregarEmprestimos();
+    container.innerHTML = `
+        <h2 class="fw-bold text-dark">Gerenciamento de Empréstimos</h2>
+        <p class="text-muted">Entregue reservas, decida renegociações, registre devoluções e acompanhe as multas.</p>
+
+        <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
+            <h5 class="fw-bold mb-3"><i class="bi bi-box-arrow-up-right me-2 text-primary"></i>Reservas aguardando retirada</h5>
+            <div id="listaEmprestimos" class="table-responsive">
+                <p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando...</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
+            <h5 class="fw-bold mb-3"><i class="bi bi-arrow-repeat me-2 text-info"></i>Pedidos de renegociação de prazo</h5>
+            <div id="listaRenegociacoes" class="table-responsive">
+                <p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando...</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
+            <h5 class="fw-bold mb-3"><i class="bi bi-box-arrow-in-down-left me-2 text-success"></i>Livros emprestados (aguardando devolução)</h5>
+            <div id="listaDevolucoes" class="table-responsive">
+                <p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando...</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
+            <h5 class="fw-bold mb-3"><i class="bi bi-cash-coin me-2 text-danger"></i>Multas (R$ 2,00 por dia de atraso)</h5>
+            <div id="listaMultas" class="table-responsive">
+                <p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando...</p>
+            </div>
+        </div>`;
+    carregarEmprestimos();
+    carregarRenegociacoes();
+    carregarDevolucoes();
+    carregarMultas();
 
             } else if (aba === 'exemplares') {
                 container.innerHTML = `
@@ -366,7 +392,7 @@
                 emprestimos.forEach(emp => {
                     tabelaHTML += `<tr>
                         <td class="fw-semibold text-dark text-truncate" style="max-width: 180px;" title="${emp.livro?.id}">${emp.livro?.titulo || emp.livro?.id}</td>
-                        <td class="text-muted small text-truncate" style="max-width: 150px;" title="${emp.usuario?.id}">${emp.usuario?.nome || emp.usuario?.id}</td>
+                        <td class="text-muted small text-truncate" style="max-width: 150px;" title="${emp.usuario?.id}">${emp.usuario?.name || emp.usuario?.id}</td>
                         <td class="small">${emp.dataPrevista || 'N/A'}</td>
                         <td><span class="badge bg-warning text-dark px-3 py-2 rounded-pill">${emp.status.toUpperCase()}</span></td>
                         <td class="text-end">
@@ -396,7 +422,8 @@
 
                 if(response.ok) {
                     alert('Status atualizado para RETIRADO com sucesso!');
-                    carregarEmprestimos(); 
+                    carregarEmprestimos();
+                    carregarDevolucoes();
                 } else {
                     const erro = await response.text();
                     alert('Erro: ' + erro);
@@ -609,6 +636,209 @@ async function confirmarExclusaoCategoria() {
         }
     } catch (error) {
         alert('Erro de comunicação com o servidor.');
+    }
+}
+
+// ===== EMPRÉSTIMOS: DEVOLUÇÃO, EXTRAVIO, RENEGOCIAÇÃO E MULTAS =====
+const VALOR_MULTA_DIA = 2; // R$ por dia de atraso
+const formatarReal = v => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+function diasParaVencer(dataPrevista) {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    return Math.round((new Date(dataPrevista + 'T00:00:00') - hoje) / 86400000);
+}
+
+// LIVROS EMPRESTADOS (aguardando devolução)
+async function carregarDevolucoes() {
+    const div = document.getElementById('listaDevolucoes');
+    if (!div) return;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/emprestimos/retirados`, { headers: getAuthHeaders() });
+        if (!response.ok) throw new Error('Falha na API');
+        const lista = await response.json();
+
+        if (lista.length === 0) {
+            div.innerHTML = '<p class="text-muted mb-0"><i class="bi bi-check-circle text-success me-2"></i>Nenhum livro emprestado no momento.</p>';
+            return;
+        }
+
+        let html = `<table class="table align-middle table-hover">
+            <thead class="table-light"><tr><th>Livro</th><th>Usuário</th><th>Devolver até</th><th>Situação</th><th class="text-end">Ações</th></tr></thead><tbody>`;
+
+        lista.forEach(emp => {
+            const dias = emp.dataPrevista ? diasParaVencer(emp.dataPrevista) : null;
+            const prevista = emp.dataPrevista ? new Date(emp.dataPrevista + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
+
+            let badge = '<span class="badge bg-success rounded-pill px-3 py-2">No prazo</span>';
+            if (dias !== null && dias < 0) {
+                badge = `<span class="badge bg-danger rounded-pill px-3 py-2">Atrasado (${Math.abs(dias)} dia(s))</span>
+                         <div class="small text-danger mt-1">Multa: ${formatarReal(Math.abs(dias) * VALOR_MULTA_DIA)}</div>`;
+            } else if (dias !== null && dias <= 3) {
+                badge = `<span class="badge bg-warning text-dark rounded-pill px-3 py-2">${dias === 0 ? 'Vence hoje' : 'Vence em ' + dias + ' dia(s)'}</span>`;
+            }
+
+            html += `<tr>
+                <td class="fw-semibold text-dark">${esc(emp.livro?.titulo)}</td>
+                <td class="small">${esc(emp.usuario?.name)}<br><span class="text-muted">${esc(emp.usuario?.email)}</span></td>
+                <td class="small">${prevista}</td>
+                <td>${badge}</td>
+                <td class="text-end text-nowrap">
+                    <button class="btn btn-outline-success action-btn rounded-pill fw-bold" onclick="registrarDevolucao('${emp.id}')">
+                        <i class="bi bi-box-arrow-in-down-left"></i> Devolução
+                    </button>
+                    <button class="btn btn-outline-dark action-btn rounded-pill fw-bold" onclick="registrarExtravio('${emp.id}')">
+                        <i class="bi bi-exclamation-octagon"></i> Extravio
+                    </button>
+                </td>
+            </tr>`;
+        });
+
+        div.innerHTML = html + '</tbody></table>';
+    } catch (error) {
+        div.innerHTML = '<p class="text-danger">Erro ao carregar os livros emprestados.</p>';
+    }
+}
+
+// REGISTRAR DEVOLUÇÃO (o back gera a multa se houve atraso)
+async function registrarDevolucao(id) {
+    if (!confirm('Confirmar que o livro foi devolvido à biblioteca?')) return;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/emprestimos/${id}/devolver`, {
+            method: 'PUT',
+            headers: getAuthHeaders()
+        });
+
+        alert(await response.text());
+
+        if (response.ok) {
+            carregarDevolucoes();
+            carregarMultas();
+        }
+    } catch (error) {
+        alert('Erro de comunicação com o servidor.');
+    }
+}
+
+// REGISTRAR EXTRAVIO
+async function registrarExtravio(id) {
+    if (!confirm('Confirmar o EXTRAVIO deste livro? O exemplar sai do total do acervo.')) return;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/emprestimos/${id}/extravio`, {
+            method: 'PUT',
+            headers: getAuthHeaders()
+        });
+
+        alert(await response.text());
+        if (response.ok) carregarDevolucoes();
+    } catch (error) {
+        alert('Erro de comunicação com o servidor.');
+    }
+}
+
+// PEDIDOS DE RENEGOCIAÇÃO
+async function carregarRenegociacoes() {
+    const div = document.getElementById('listaRenegociacoes');
+    if (!div) return;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/emprestimos/renegociacoes`, { headers: getAuthHeaders() });
+        if (!response.ok) throw new Error('Falha na API');
+        const lista = await response.json();
+
+        if (lista.length === 0) {
+            div.innerHTML = '<p class="text-muted mb-0"><i class="bi bi-check-circle text-success me-2"></i>Nenhum pedido de renegociação pendente.</p>';
+            return;
+        }
+
+        let html = `<table class="table align-middle table-hover">
+            <thead class="table-light"><tr><th>Livro</th><th>Usuário</th><th>Prazo atual</th><th>Situação</th><th class="text-end">Ações</th></tr></thead><tbody>`;
+
+        lista.forEach(emp => {
+            const dias = diasParaVencer(emp.dataPrevista);
+            const situacao = dias < 0
+                ? `<span class="badge bg-danger rounded-pill">Atrasado (${Math.abs(dias)} dia(s))</span>`
+                : `<span class="badge bg-warning text-dark rounded-pill">${dias === 0 ? 'Vence hoje' : 'Vence em ' + dias + ' dia(s)'}</span>`;
+
+            html += `<tr>
+                <td class="fw-semibold text-dark">${esc(emp.livro?.titulo)}</td>
+                <td class="small">${esc(emp.usuario?.name)}<br><span class="text-muted">${esc(emp.usuario?.email)}</span></td>
+                <td class="small">${new Date(emp.dataPrevista + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                <td>${situacao}</td>
+                <td class="text-end text-nowrap">
+                    <button class="btn btn-success action-btn rounded-pill fw-bold" onclick="decidirRenegociacao('${emp.id}', 'aprovar')">
+                        <i class="bi bi-check-lg"></i> Aprovar (+7 dias)
+                    </button>
+                    <button class="btn btn-outline-danger action-btn rounded-pill fw-bold" onclick="decidirRenegociacao('${emp.id}', 'recusar')">
+                        <i class="bi bi-x-lg"></i> Recusar
+                    </button>
+                </td>
+            </tr>`;
+        });
+
+        div.innerHTML = html + '</tbody></table>';
+    } catch (error) {
+        div.innerHTML = '<p class="text-danger">Erro ao carregar os pedidos de renegociação.</p>';
+    }
+}
+
+async function decidirRenegociacao(id, acao) {
+    const pergunta = acao === 'aprovar' ? 'Aprovar a renegociação e dar mais 7 dias de prazo?' : 'Recusar este pedido de renegociação?';
+    if (!confirm(pergunta)) return;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/emprestimos/${id}/renegociacao/${acao}`, {
+            method: 'PUT',
+            headers: getAuthHeaders()
+        });
+
+        alert(await response.text());
+
+        if (response.ok) {
+            carregarRenegociacoes();
+            carregarDevolucoes();
+        }
+    } catch (error) {
+        alert('Erro de comunicação com o servidor.');
+    }
+}
+
+// MULTAS (todas)
+async function carregarMultas() {
+    const div = document.getElementById('listaMultas');
+    if (!div) return;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/multas`, { headers: getAuthHeaders() });
+        if (!response.ok) throw new Error('Falha na API');
+        const multas = await response.json();
+
+        if (multas.length === 0) {
+            div.innerHTML = '<p class="text-muted mb-0">Nenhuma multa registrada.</p>';
+            return;
+        }
+
+        let html = `<table class="table align-middle table-hover">
+            <thead class="table-light"><tr><th>Usuário</th><th>Livro</th><th>Dias de atraso</th><th>Valor</th><th>Situação</th></tr></thead><tbody>`;
+
+        multas.forEach(m => {
+            html += `<tr>
+                <td class="small">${esc(m.usuario?.name)}<br><span class="text-muted">${esc(m.usuario?.email)}</span></td>
+                <td class="fw-semibold text-dark">${esc(m.emprestimo?.livro?.titulo)}</td>
+                <td>${m.diasAtraso}</td>
+                <td class="fw-semibold">${formatarReal(m.valor)}</td>
+                <td>${m.status === 'pendente'
+                    ? '<span class="badge bg-danger rounded-pill px-3 py-2">Pendente</span>'
+                    : '<span class="badge bg-success rounded-pill px-3 py-2">Paga</span>'}</td>
+            </tr>`;
+        });
+
+        div.innerHTML = html + '</tbody></table>';
+    } catch (error) {
+        div.innerHTML = '<p class="text-danger">Erro ao carregar as multas.</p>';
     }
 }
 
