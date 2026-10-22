@@ -118,6 +118,66 @@
             </div>
         </div></div>
         </div>
+
+        <!-- MODAL: ENTREGAR (bipar o exemplar) -->
+        <div class="modal fade" id="modalEntrega" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered"><div class="modal-content rounded-4">
+            <div class="modal-header">
+            <h5 class="modal-title fw-bold"><i class="bi bi-upc-scan me-2"></i>Entregar exemplar</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+            <input type="hidden" id="entregaId">
+            <p class="mb-3">Livro: <strong id="entregaTitulo"></strong></p>
+            <label class="form-label fw-semibold">Código do exemplar</label>
+            <input type="text" id="entregaCodigo" class="form-control" placeholder="Bipe a etiqueta da cópia que está saindo" autocomplete="off">
+            <div class="form-text">O leitor digita o código e confirma sozinho (Enter).</div>
+            </div>
+            <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-success fw-bold" onclick="confirmarEntrega()"><i class="bi bi-check2-circle"></i> Confirmar entrega</button>
+            </div>
+        </div></div>
+        </div>
+
+        <!-- MODAL: REPOSIÇÃO DE LIVRO EXTRAVIADO -->
+        <div class="modal fade" id="modalReposicao" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered"><div class="modal-content rounded-4">
+            <div class="modal-header">
+            <h5 class="modal-title fw-bold"><i class="bi bi-box-seam me-2"></i>Registrar reposição</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+            <input type="hidden" id="reposicaoId">
+            <p class="mb-3">Livro: <strong id="reposicaoTitulo"></strong></p>
+            <label class="form-label fw-semibold">Código do exemplar NOVO entregue pelo usuário</label>
+            <input type="text" id="reposicaoCodigo" class="form-control" placeholder="Bipe a etiqueta do exemplar novo" autocomplete="off">
+            </div>
+            <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-success fw-bold" onclick="confirmarReposicao()"><i class="bi bi-check-lg"></i> Registrar reposição</button>
+            </div>
+        </div></div>
+        </div>
+
+        <!-- MODAL: EXEMPLARES DE UM LIVRO -->
+        <div class="modal fade" id="modalExemplares" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content rounded-4">
+            <div class="modal-header">
+            <h5 class="modal-title fw-bold"><i class="bi bi-upc me-2"></i>Exemplares: <span id="exemplaresTitulo"></span></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+            <input type="hidden" id="exemplaresLivroId">
+            <div id="listaExemplares" class="table-responsive mb-4"></div>
+            <label class="form-label fw-semibold">Adicionar exemplar</label>
+            <div class="input-group">
+                <input type="text" id="exemplaresNovoCodigo" class="form-control" placeholder="Bipe a etiqueta do novo exemplar" autocomplete="off">
+                <button type="button" class="btn btn-primary" onclick="adicionarExemplarAoLivro()"><i class="bi bi-plus-lg"></i> Adicionar</button>
+            </div>
+            </div>
+        </div></div>
+        </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
     <script>
@@ -173,6 +233,13 @@
         </div>
 
         <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
+            <h5 class="fw-bold mb-3"><i class="bi bi-exclamation-octagon me-2 text-dark"></i>Extravios aguardando reposição (prazo de 30 dias)</h5>
+            <div id="listaExtraviados" class="table-responsive">
+                <p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando...</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
             <h5 class="fw-bold mb-3"><i class="bi bi-cash-coin me-2 text-danger"></i>Multas (R$ 2,00 por dia de atraso)</h5>
             <div id="listaMultas" class="table-responsive">
                 <p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando...</p>
@@ -181,62 +248,74 @@
     carregarEmprestimos();
     carregarRenegociacoes();
     carregarDevolucoes();
+    carregarExtraviados();
     carregarMultas();
 
             } else if (aba === 'exemplares') {
                 container.innerHTML = `
                     <h2 class="fw-bold text-dark">Cadastro de Exemplares</h2>
-                    <p class="text-muted">Adicione novos livros e disponibilize-os no acervo imediatamente.</p>
+                    <p class="text-muted">Cadastre pelo leitor de código de barras ou de forma manual. Cada exemplar (cópia física) tem o seu próprio código.</p>
                     <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
-                        <form id="formCadastroLivro" onsubmit="cadastrarLivro(event)">
-                            <div class="row">
+
+                        <!-- PASSO 1: ISBN -->
+                        <div id="passoIsbn">
+                            <label class="form-label fw-semibold"><i class="bi bi-upc-scan me-1"></i>ISBN do livro</label>
+                            <div class="input-group" style="max-width: 560px;">
+                                <input type="text" id="cadIsbn" class="form-control" placeholder="Bipe o código de barras do livro ou digite o ISBN" autocomplete="off">
+                                <button class="btn btn-primary" type="button" onclick="buscarLivroPorIsbn()"><i class="bi bi-search"></i> Buscar</button>
+                            </div>
+                            <div class="form-text">O leitor digita o código no campo e confirma sozinho (Enter).</div>
+                            <button type="button" class="btn btn-link px-0 mt-2" onclick="cadastroManualSemIsbn()">Livro sem ISBN? Cadastrar manualmente</button>
+                        </div>
+
+                        <!-- PASSO 2: dados + códigos dos exemplares -->
+                        <div id="passoDados" class="d-none mt-4">
+                            <input type="hidden" id="cadLivroId">
+
+                            <div id="livroEncontrado" class="alert alert-info d-none"></div>
+
+                            <div id="camposLivro" class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-semibold">Título do Livro</label>
-                                    <input type="text" id="livroTitulo" class="form-control" required>
+                                    <input type="text" id="livroTitulo" class="form-control">
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-semibold">Autor</label>
-                                    <input type="text" id="livroAutor" class="form-control" required>
+                                    <input type="text" id="livroAutor" class="form-control">
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-semibold">Editora</label>
-                                    <input type="text" id="livroEditora" class="form-control" required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-semibold">ISBN</label>
-                                    <input type="text" id="livroIsbn" class="form-control" placeholder="Opcional">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-semibold">Qtd. Total (Estoque)</label>
-                                    <input type="number" id="livroQtd" class="form-control" value="1" min="1" required>
+                                    <input type="text" id="livroEditora" class="form-control">
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-semibold text-primary">Categoria do Livro</label>
-                                    <select id="livroCategoriaId" class="form-select border-primary" required>
+                                    <select id="livroCategoriaId" class="form-select border-primary">
                                         <option value="" disabled selected>Carregando categorias...</option>
                                     </select>
                                 </div>
                             </div>
-                            <button type="submit" id="btnSalvarLivro" class="btn btn-primary mt-3 px-4 shadow-sm fw-bold">
-                                <i class="bi bi-check-lg"></i> Salvar Livro no Sistema
-                            </button>
-                        </form>
+
+                            <hr>
+                            <label class="form-label fw-semibold"><i class="bi bi-upc me-1"></i>Códigos dos exemplares</label>
+                            <div class="input-group" style="max-width: 640px;">
+                                <input type="text" id="cadCodigo" class="form-control" placeholder="Bipe a etiqueta de cada exemplar (Enter para adicionar)" autocomplete="off">
+                                <button type="button" class="btn btn-outline-secondary" onclick="adicionarCodigo()">Adicionar</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="gerarCodigoAutomatico()">Gerar código</button>
+                            </div>
+                            <div class="form-text">Um código por exemplar. Se o livro físico ainda não tem etiqueta, use Gerar código e cole a etiqueta depois.</div>
+                            <div id="listaCodigos" class="d-flex flex-wrap gap-2 mt-3"></div>
+
+                            <div class="mt-4 d-flex gap-2">
+                                <button type="button" id="btnSalvarExemplares" class="btn btn-primary px-4 fw-bold" onclick="salvarExemplares()">
+                                    <i class="bi bi-check-lg"></i> Salvar exemplares
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="mudarAba('exemplares')">Cancelar</button>
+                            </div>
+                        </div>
                     </div>`;
-                carregarCategorias(); // Atualiza o dropdown dinâmico
-                    } else if (aba === 'acervo') {
-    container.innerHTML = `
-        <h2 class="fw-bold text-dark">Acervo</h2>
-        <p class="text-muted">Livros cadastrados e ativos no sistema.</p>
-        <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
-            <div class="input-group mb-3" style="max-width: 500px;">
-                <input type="text" id="buscaAcervo" class="form-control" placeholder="Buscar por título...">
-                <button class="btn btn-primary" onclick="carregarAcervo()"><i class="bi bi-search"></i></button>
-            </div>
-            <div id="listaAcervo" class="table-responsive">
-                <p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando acervo...</p>
-            </div>
-        </div>`;
-    carregarAcervo();
+                carregarCategorias();
+                iniciarTelaCadastro();
+
             } else if (aba === 'tabelas') {
                 container.innerHTML = `
                     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -380,6 +459,7 @@
                 
                 if(!response.ok) throw new Error("Falha na API");
                 const emprestimos = await response.json();
+                window.reservasCache = emprestimos;
 
                 if(emprestimos.length === 0) {
                     divLista.innerHTML = '<p class="text-muted mb-0"><i class="bi bi-check-circle text-success me-2"></i>Nenhuma reserva pendente de retirada.</p>';
@@ -410,61 +490,206 @@
             }
         }
 
-        // 2. MARCAR COMO RETIRADO
-        async function marcarComoRetirado(id) {
-            if(!confirm("Confirmar a entrega física deste livro ao utilizador?")) return;
+        // 2. ENTREGAR (o bibliotecário bipa o código da cópia que está saindo)
+        function marcarComoRetirado(id) {
+            const reserva = (window.reservasCache || []).find(r => r.id === id);
+
+            document.getElementById('entregaId').value = id;
+            document.getElementById('entregaTitulo').textContent = reserva?.livro?.titulo || '';
+            document.getElementById('entregaCodigo').value = '';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEntrega')).show();
+        }
+
+        async function confirmarEntrega() {
+            const id = document.getElementById('entregaId').value;
+            const codigoExemplar = document.getElementById('entregaCodigo').value.trim();
+
+            if (!codigoExemplar) { alert('Bipe ou digite o código do exemplar.'); return; }
 
             try {
                 const response = await fetch(`${BACKEND_URL}/api/emprestimos/${id}/retirar`, {
                     method: 'PUT',
-                    headers: getAuthHeaders()
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ codigoExemplar })
                 });
 
-                if(response.ok) {
-                    alert('Status atualizado para RETIRADO com sucesso!');
+                const texto = await response.text();
+
+                if (response.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('modalEntrega')).hide();
+                    alert(texto);
                     carregarEmprestimos();
                     carregarDevolucoes();
                 } else {
-                    const erro = await response.text();
-                    alert('Erro: ' + erro);
+                    alert(texto || 'Não foi possível registrar a entrega.');
+                    document.getElementById('entregaCodigo').select();
                 }
             } catch (error) {
                 alert('Erro de comunicação com o servidor.');
             }
         }
 
-        // 3. CADASTRAR LIVRO
-        async function cadastrarLivro(event) {
-            event.preventDefault();
-            const btnSalvar = document.getElementById('btnSalvarLivro');
-            btnSalvar.disabled = true;
+        // 3. CADASTRO DE EXEMPLARES (leitor de código de barras ou manual)
+        let codigosCadastro = [];
+        let isbnAtual = '';
 
-            const novoLivro = {
-                titulo: document.getElementById('livroTitulo').value,
-                autor: document.getElementById('livroAutor').value,
-                editora: document.getElementById('livroEditora').value,
-                isbn: document.getElementById('livroIsbn').value,
-                qtdTotal: parseInt(document.getElementById('livroQtd').value),
-                categoria: { id: document.getElementById('livroCategoriaId').value }
-            };
+        function iniciarTelaCadastro() {
+            codigosCadastro = [];
+            isbnAtual = '';
+
+            const campoIsbn = document.getElementById('cadIsbn');
+            const campoCodigo = document.getElementById('cadCodigo');
+
+            // O leitor de código de barras "digita" o código e envia um Enter
+            campoIsbn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); buscarLivroPorIsbn(); } });
+            campoCodigo.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); adicionarCodigo(); } });
+
+            campoIsbn.focus();
+        }
+
+        async function buscarLivroPorIsbn() {
+            const isbn = document.getElementById('cadIsbn').value.trim();
+            if (!isbn) { alert('Bipe ou digite o ISBN do livro.'); return; }
 
             try {
-                const response = await fetch(`${BACKEND_URL}/api/livros`, {
-                    method: 'POST',
-                    headers: getAuthHeaders(),
-                    body: JSON.stringify(novoLivro)
+                const response = await fetch(`${BACKEND_URL}/api/exemplares/buscar-livro?isbn=${encodeURIComponent(isbn)}`, {
+                    headers: getAuthHeaders()
                 });
 
                 if (response.ok) {
-                    alert('Livro cadastrado com sucesso e já disponível no catálogo!');
-                    document.getElementById('formCadastroLivro').reset();
+                    mostrarPassoDados(await response.json(), isbn);
+                } else if (response.status === 404) {
+                    mostrarPassoDados(null, isbn);
                 } else {
-                    alert('Erro ao salvar livro no Java.');
+                    alert(await response.text());
+                }
+            } catch (error) {
+                alert('Erro de comunicação com o servidor.');
+            }
+        }
+
+        function cadastroManualSemIsbn() {
+            document.getElementById('cadIsbn').value = '';
+            mostrarPassoDados(null, '');
+        }
+
+        function mostrarPassoDados(livro, isbn) {
+            isbnAtual = isbn;
+            codigosCadastro = [];
+            renderizarCodigos();
+
+            document.getElementById('passoDados').classList.remove('d-none');
+
+            const aviso = document.getElementById('livroEncontrado');
+            const campos = document.getElementById('camposLivro');
+
+            if (livro) {
+                document.getElementById('cadLivroId').value = livro.id;
+                aviso.innerHTML = `<i class="bi bi-info-circle me-1"></i>Livro já cadastrado: <strong>${esc(livro.titulo)}</strong> (${esc(livro.autor)}). Hoje há <strong>${livro.qtdTotal}</strong> exemplar(es) no acervo. Informe só os códigos dos novos exemplares.`;
+                aviso.classList.remove('d-none');
+                campos.classList.add('d-none');
+            } else {
+                document.getElementById('cadLivroId').value = '';
+                aviso.classList.add('d-none');
+                campos.classList.remove('d-none');
+            }
+
+            document.getElementById('cadCodigo').focus();
+        }
+
+        function adicionarCodigo() {
+            const campo = document.getElementById('cadCodigo');
+            const codigo = campo.value.trim().toUpperCase();
+            if (!codigo) return;
+
+            if (codigosCadastro.includes(codigo)) {
+                alert('Este código já está na lista.');
+            } else {
+                codigosCadastro.push(codigo);
+                renderizarCodigos();
+            }
+
+            campo.value = '';
+            campo.focus();
+        }
+
+        function gerarCodigoAutomatico() {
+            let codigo;
+            do {
+                codigo = 'EX-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+            } while (codigosCadastro.includes(codigo));
+
+            codigosCadastro.push(codigo);
+            renderizarCodigos();
+        }
+
+        function removerCodigo(codigo) {
+            codigosCadastro = codigosCadastro.filter(c => c !== codigo);
+            renderizarCodigos();
+        }
+
+        function renderizarCodigos() {
+            const div = document.getElementById('listaCodigos');
+            if (!div) return;
+
+            div.innerHTML = codigosCadastro.length === 0
+                ? '<span class="text-muted small">Nenhum exemplar adicionado ainda.</span>'
+                : codigosCadastro.map(c => `
+                    <span class="badge text-bg-light border fs-6 fw-normal d-inline-flex align-items-center gap-2">
+                        <code>${esc(c)}</code>
+                        <button type="button" class="btn-close" style="font-size: 0.6rem;" aria-label="Remover" data-codigo="${esc(c)}" onclick="removerCodigo(this.dataset.codigo)"></button>
+                    </span>`).join('');
+        }
+
+        async function salvarExemplares() {
+            if (codigosCadastro.length === 0) { alert('Adicione ao menos o código de um exemplar.'); return; }
+
+            const livroId = document.getElementById('cadLivroId').value;
+            let corpo;
+
+            if (livroId) {
+                corpo = { livroId, codigos: codigosCadastro };
+            } else {
+                const titulo = document.getElementById('livroTitulo').value.trim();
+                const autor = document.getElementById('livroAutor').value.trim();
+                const categoriaId = document.getElementById('livroCategoriaId').value;
+
+                if (!titulo || !autor || !categoriaId) {
+                    alert('Preencha título, autor e categoria do livro.');
+                    return;
+                }
+
+                corpo = {
+                    livro: {
+                        titulo, autor, categoriaId,
+                        editora: document.getElementById('livroEditora').value.trim(),
+                        isbn: isbnAtual
+                    },
+                    codigos: codigosCadastro
+                };
+            }
+
+            const btn = document.getElementById('btnSalvarExemplares');
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/exemplares`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(corpo)
+                });
+
+                if (response.ok) {
+                    const r = await response.json();
+                    alert(`${r.codigosCadastrados.length} exemplar(es) cadastrado(s) para "${r.titulo}". Total no acervo: ${r.qtdTotal}.`);
+                    mudarAba('exemplares');
+                } else {
+                    alert(await response.text() || 'Erro ao salvar os exemplares.');
                 }
             } catch (error) {
                 alert('Erro de rede ao contactar o servidor.');
             } finally {
-                btnSalvar.disabled = false;
+                btn.disabled = false;
             }
         }
 
@@ -515,6 +740,7 @@ async function carregarAcervo() {
         );
         if (!response.ok) throw new Error('Falha na API');
         const livros = await response.json();
+        window.acervoCache = livros;
 
         if (livros.length === 0) {
             div.innerHTML = '<p class="text-muted mb-0">Nenhum livro encontrado.</p>';
@@ -531,7 +757,10 @@ async function carregarAcervo() {
                 <td>${esc(l.editora)}</td>
                 <td class="small text-muted">${esc(l.isbn)}</td>
                 <td>${l.qtdDisponivel} / ${l.qtdTotal}</td>
-                <td class="text-end">
+                <td class="text-end text-nowrap">
+                    <button class="btn btn-outline-primary action-btn rounded-pill" onclick="abrirExemplares('${l.id}')">
+                        <i class="bi bi-upc"></i> Exemplares
+                    </button>
                     <button class="btn btn-outline-danger action-btn rounded-pill" onclick="desativarLivro('${l.id}')">
                         <i class="bi bi-slash-circle"></i> Desativar
                     </button>
@@ -665,7 +894,7 @@ async function carregarDevolucoes() {
         }
 
         let html = `<table class="table align-middle table-hover">
-            <thead class="table-light"><tr><th>Livro</th><th>Usuário</th><th>Devolver até</th><th>Situação</th><th class="text-end">Ações</th></tr></thead><tbody>`;
+            <thead class="table-light"><tr><th>Livro</th><th>Usuário</th><th>Exemplar</th><th>Devolver até</th><th>Situação</th><th class="text-end">Ações</th></tr></thead><tbody>`;
 
         lista.forEach(emp => {
             const dias = emp.dataPrevista ? diasParaVencer(emp.dataPrevista) : null;
@@ -682,6 +911,7 @@ async function carregarDevolucoes() {
             html += `<tr>
                 <td class="fw-semibold text-dark">${esc(emp.livro?.titulo)}</td>
                 <td class="small">${esc(emp.usuario?.name)}<br><span class="text-muted">${esc(emp.usuario?.email)}</span></td>
+                <td><code>${esc(emp.exemplar?.codigo)}</code></td>
                 <td class="small">${prevista}</td>
                 <td>${badge}</td>
                 <td class="text-end text-nowrap">
@@ -724,7 +954,7 @@ async function registrarDevolucao(id) {
 
 // REGISTRAR EXTRAVIO
 async function registrarExtravio(id) {
-    if (!confirm('Confirmar o EXTRAVIO deste livro? O exemplar sai do total do acervo.')) return;
+    if (!confirm('Confirmar o EXTRAVIO deste livro? O atraso congela e o usuário terá 30 dias para entregar um exemplar novo.')) return;
 
     try {
         const response = await fetch(`${BACKEND_URL}/api/emprestimos/${id}/extravio`, {
@@ -733,7 +963,12 @@ async function registrarExtravio(id) {
         });
 
         alert(await response.text());
-        if (response.ok) carregarDevolucoes();
+
+        if (response.ok) {
+            carregarDevolucoes();
+            carregarExtraviados();
+            carregarMultas();
+        }
     } catch (error) {
         alert('Erro de comunicação com o servidor.');
     }
@@ -822,12 +1057,13 @@ async function carregarMultas() {
         }
 
         let html = `<table class="table align-middle table-hover">
-            <thead class="table-light"><tr><th>Usuário</th><th>Livro</th><th>Dias de atraso</th><th>Valor</th><th>Situação</th></tr></thead><tbody>`;
+            <thead class="table-light"><tr><th>Usuário</th><th>Livro</th><th>Exemplar</th><th>Dias de atraso</th><th>Valor</th><th>Situação</th></tr></thead><tbody>`;
 
         multas.forEach(m => {
             html += `<tr>
                 <td class="small">${esc(m.usuario?.name)}<br><span class="text-muted">${esc(m.usuario?.email)}</span></td>
                 <td class="fw-semibold text-dark">${esc(m.emprestimo?.livro?.titulo)}</td>
+                <td><code>${esc(m.emprestimo?.exemplar?.codigo)}</code></td>
                 <td>${m.diasAtraso}</td>
                 <td class="fw-semibold">${formatarReal(m.valor)}</td>
                 <td>${m.status === 'pendente'
@@ -841,6 +1077,188 @@ async function carregarMultas() {
         div.innerHTML = '<p class="text-danger">Erro ao carregar as multas.</p>';
     }
 }
+
+
+// EXTRAVIOS AGUARDANDO REPOSIÇÃO
+async function carregarExtraviados() {
+    const div = document.getElementById('listaExtraviados');
+    if (!div) return;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/emprestimos/extraviados`, { headers: getAuthHeaders() });
+        if (!response.ok) throw new Error('Falha na API');
+        const lista = await response.json();
+        window.extraviadosCache = lista;
+
+        if (lista.length === 0) {
+            div.innerHTML = '<p class="text-muted mb-0"><i class="bi bi-check-circle text-success me-2"></i>Nenhum extravio aguardando reposição.</p>';
+            return;
+        }
+
+        let html = `<table class="table align-middle table-hover">
+            <thead class="table-light"><tr><th>Livro</th><th>Usuário</th><th>Exemplar perdido</th><th>Prazo de reposição</th><th class="text-end">Ações</th></tr></thead><tbody>`;
+
+        lista.forEach(emp => {
+            const dias = emp.reposicaoAte ? diasParaVencer(emp.reposicaoAte) : null;
+            const prazo = emp.reposicaoAte ? new Date(emp.reposicaoAte + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
+            const situacao = dias !== null && dias < 0
+                ? '<span class="badge bg-danger rounded-pill ms-2">Prazo vencido</span>'
+                : (dias !== null ? `<span class="badge bg-warning text-dark rounded-pill ms-2">${dias} dia(s)</span>` : '');
+
+            html += `<tr>
+                <td class="fw-semibold text-dark">${esc(emp.livro?.titulo)}</td>
+                <td class="small">${esc(emp.usuario?.name)}<br><span class="text-muted">${esc(emp.usuario?.email)}</span></td>
+                <td><code>${esc(emp.exemplar?.codigo)}</code></td>
+                <td class="small">${prazo}${situacao}</td>
+                <td class="text-end text-nowrap">
+                    <button class="btn btn-success action-btn rounded-pill fw-bold" onclick="registrarReposicao('${emp.id}')">
+                        <i class="bi bi-box-seam"></i> Reposição
+                    </button>
+                    <button class="btn btn-outline-dark action-btn rounded-pill fw-bold" onclick="registrarBaixa('${emp.id}')">
+                        <i class="bi bi-archive"></i> Dar baixa
+                    </button>
+                </td>
+            </tr>`;
+        });
+
+        div.innerHTML = html + '</tbody></table>';
+    } catch (error) {
+        div.innerHTML = '<p class="text-danger">Erro ao carregar os extravios.</p>';
+    }
+}
+
+function registrarReposicao(id) {
+    const emp = (window.extraviadosCache || []).find(e => e.id === id);
+
+    document.getElementById('reposicaoId').value = id;
+    document.getElementById('reposicaoTitulo').textContent = emp?.livro?.titulo || '';
+    document.getElementById('reposicaoCodigo').value = '';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalReposicao')).show();
+}
+
+async function confirmarReposicao() {
+    const id = document.getElementById('reposicaoId').value;
+    const codigoExemplar = document.getElementById('reposicaoCodigo').value.trim();
+
+    if (!codigoExemplar) { alert('Bipe ou digite o código do exemplar novo.'); return; }
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/emprestimos/${id}/reposicao`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ codigoExemplar })
+        });
+
+        const texto = await response.text();
+
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modalReposicao')).hide();
+            alert(texto);
+            carregarExtraviados();
+        } else {
+            alert(texto || 'Não foi possível registrar a reposição.');
+        }
+    } catch (error) {
+        alert('Erro de comunicação com o servidor.');
+    }
+}
+
+async function registrarBaixa(id) {
+    if (!confirm('Dar baixa definitiva neste exemplar? Ele sai do total do acervo (o livro não foi reposto).')) return;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/emprestimos/${id}/baixa`, {
+            method: 'PUT',
+            headers: getAuthHeaders()
+        });
+
+        alert(await response.text());
+        if (response.ok) carregarExtraviados();
+    } catch (error) {
+        alert('Erro de comunicação com o servidor.');
+    }
+}
+
+// EXEMPLARES DE UM LIVRO (aba Acervo)
+async function abrirExemplares(livroId) {
+    const livro = (window.acervoCache || []).find(l => l.id === livroId);
+
+    document.getElementById('exemplaresLivroId').value = livroId;
+    document.getElementById('exemplaresTitulo').textContent = livro?.titulo || '';
+    document.getElementById('exemplaresNovoCodigo').value = '';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalExemplares')).show();
+
+    await carregarExemplaresDoLivro();
+}
+
+async function carregarExemplaresDoLivro() {
+    const livroId = document.getElementById('exemplaresLivroId').value;
+    const div = document.getElementById('listaExemplares');
+    div.innerHTML = '<p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando...</p>';
+
+    const cores = { disponivel: 'success', emprestado: 'primary', extraviado: 'danger', baixado: 'secondary' };
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/exemplares?livroId=${livroId}`, { headers: getAuthHeaders() });
+        if (!response.ok) throw new Error('Falha na API');
+        const lista = await response.json();
+
+        if (lista.length === 0) {
+            div.innerHTML = '<p class="text-muted mb-0">Nenhum exemplar cadastrado.</p>';
+            return;
+        }
+
+        div.innerHTML = `<table class="table align-middle mb-0">
+            <thead class="table-light"><tr><th>Código</th><th>Situação</th></tr></thead><tbody>` +
+            lista.map(ex => `<tr><td><code>${esc(ex.codigo)}</code></td>
+                <td><span class="badge bg-${cores[ex.status] || 'secondary'} rounded-pill">${esc(ex.status)}</span></td></tr>`).join('') +
+            '</tbody></table>';
+    } catch (error) {
+        div.innerHTML = '<p class="text-danger">Erro ao carregar os exemplares.</p>';
+    }
+}
+
+async function adicionarExemplarAoLivro() {
+    const livroId = document.getElementById('exemplaresLivroId').value;
+    const campo = document.getElementById('exemplaresNovoCodigo');
+    const codigo = campo.value.trim();
+
+    if (!codigo) { alert('Bipe ou digite o código do exemplar.'); return; }
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/exemplares`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ livroId, codigos: [codigo] })
+        });
+
+        if (response.ok) {
+            campo.value = '';
+            carregarExemplaresDoLivro();
+            carregarAcervo();
+        } else {
+            alert(await response.text() || 'Erro ao adicionar o exemplar.');
+        }
+    } catch (error) {
+        alert('Erro de comunicação com o servidor.');
+    }
+}
+
+// O leitor de código de barras confirma com Enter nos campos dos modais
+['entregaCodigo', 'reposicaoCodigo', 'exemplaresNovoCodigo'].forEach(idCampo => {
+    document.getElementById(idCampo).addEventListener('keydown', e => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        if (idCampo === 'entregaCodigo') confirmarEntrega();
+        else if (idCampo === 'reposicaoCodigo') confirmarReposicao();
+        else adicionarExemplarAoLivro();
+    });
+});
+
+// Foca no campo do código assim que o modal abre (o leitor já pode bipar)
+[['modalEntrega', 'entregaCodigo'], ['modalReposicao', 'reposicaoCodigo'], ['modalExemplares', 'exemplaresNovoCodigo']].forEach(([modal, campo]) => {
+    document.getElementById(modal).addEventListener('shown.bs.modal', () => document.getElementById(campo).focus());
+});
 
         // --- SISTEMA DE LOGOUT CORRIGIDO ---
         document.getElementById('btnLogout').addEventListener('click', async (e) => {
