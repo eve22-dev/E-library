@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
         div.innerHTML = texto;
         chatMessages.appendChild(div);
         chatMessages.scrollTop = chatMessages.scrollHeight;
+        return div;
     }
 
     async function enviarMensagem() {
@@ -52,42 +53,39 @@ document.addEventListener('DOMContentLoaded', () => {
             const mensagemLower = texto.toLowerCase();
 
             if (mensagemLower.includes('prazo') || mensagemLower.includes('dias') || mensagemLower.includes('devolver')) {
-                adicionarMensagemBot("O prazo padrão de empréstimo de livros é de **14 dias**, podendo ser renovado caso não haja reservas pendentes.");
-            } 
-            else if (mensagemLower.includes('renovar') || mensagemLower.includes('renovação')) {
-                adicionarMensagemBot("Você pode solicitar a renovação diretamente na sua aba de empréstimos no perfil ou balcão da biblioteca.");
-            } 
-            else if (mensagemLower.includes('horario') || mensagemLower.includes('funcionamento')) {
+                adicionarMensagemBot("O prazo de empréstimo é de <b>14 dias</b> para alunos e <b>30 dias</b> para professores. Perto do vencimento você pode pedir renegociação do prazo em Meus Empréstimos; o bibliotecário precisa aprovar. Atraso gera multa de <b>R$ 2,00 por dia</b>.");
+            }
+            else if (mensagemLower.includes('renovar') || mensagemLower.includes('renovação') || mensagemLower.includes('renegoci')) {
+                adicionarMensagemBot("Quando faltarem até 3 dias para vencer (ou se já venceu), use o botão <b>Renegociar prazo</b> na tela inicial ou em Meus Empréstimos. O bibliotecário analisa o pedido.");
+            }
+            else if (mensagemLower.includes('multa')) {
+                adicionarMensagemBot("A multa é de <b>R$ 2,00 por dia de atraso</b>, gerada na devolução. Você paga em Meus Empréstimos, na seção Minhas Multas.");
+            }
+            else if (mensagemLower.includes('horario') || mensagemLower.includes('horário') || mensagemLower.includes('funcionamento')) {
                 adicionarMensagemBot("A biblioteca física funciona de segunda a sexta-feira, das 08:00 às 21:30.");
-            } 
+            }
             else {
                 // Se o bot não entendeu, oferecemos a opção de chamar o bibliotecário humano
-                adicionarMensagemBot("Hmm, não encontrei uma resposta exata para isso. Deseja enviar sua dúvida diretamente para o bibliotecário humano?<br><br><button id='btnChamarHumano' class='btn btn-sm btn-primary w-100 mt-1'>Falar com o Bibliotecário</button>");
-                
-                // Atribui a ação do botão criado dinamicamente
-                document.getElementById('btnChamarHumano').addEventListener('click', () => {
-                    enviarParaBancoSupabase(texto);
+                const msg = adicionarMensagemBot("Hmm, não encontrei uma resposta exata para isso. Deseja enviar sua dúvida diretamente para o bibliotecário humano?<br><br><button class='btn btn-sm btn-primary w-100 mt-1'>Falar com o Bibliotecário</button>");
+
+                msg.querySelector('button').addEventListener('click', (e) => {
+                    e.target.disabled = true;
+                    enviarParaBibliotecario(texto);
                 });
             }
         }, 500);
     }
 
-    // Função que salva a dúvida na tabela 'mensagens_suporte' do Supabase
-    async function enviarParaBancoSupabase(duvidaTexto) {
+    // Envia a dúvida para o bibliotecário pelo back-end (usuário identificado pelo login)
+    async function enviarParaBibliotecario(duvidaTexto) {
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                alert("Você precisa estar logado para enviar mensagens ao suporte.");
-                return;
-            }
+            const resposta = await fetch(`${API_URL}/api/chat/suporte`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ duvida: duvidaTexto })
+            });
 
-            const { error } = await supabase
-                .from('mensagens_suporte')
-                .insert([
-                    { user_id: session.user.id, mensagem: duvidaTexto, status: 'pendente' }
-                ]);
-
-            if (error) throw error;
+            if (!resposta.ok) throw new Error(await resposta.text());
 
             adicionarMensagemBot("✅ Sua dúvida foi enviada com sucesso para o bibliotecário! Em breve você receberá um retorno.");
         } catch (err) {

@@ -13,10 +13,10 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-12 col-md-6 col-lg-4">
-                
+
                 <div class="card shadow-lg border-0 rounded-4">
                     <div class="card-body p-5 text-center">
-                        
+
                         <header class="mb-4">
                             <h1 class="display-6 fw-bold text-primary">E-library</h1>
                             <p class="text-muted small">Acesse sua conta</p>
@@ -25,15 +25,14 @@
                         <form id="loginForm">
                             <div class="form-floating mb-3">
                                 <input type="email" class="form-control" id="email" placeholder="nome@fatec.sp.gov.br" required>
-                                <label for="email text-start">E-mail Institucional</label>
+                                <label for="email">E-mail Institucional</label>
                             </div>
-                            
+
                             <div class="form-floating mb-4">
                                 <input type="password" class="form-control" id="password" placeholder="Senha" required>
                                 <label for="password">Senha</label>
                             </div>
 
-                            <!-- Adicionei um ID ao botão para podermos mostrar um "Carregando..." -->
                             <button type="submit" id="btnSubmit" class="btn btn-primary btn-lg w-100 shadow-sm">Entrar</button>
                         </form>
 
@@ -48,19 +47,8 @@
         </div>
     </div>
 
-    <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        const SUPABASE_URL = 'https://axeyrwilhvbzlfukivhu.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4ZXlyd2lsaHZiemxmdWtpdmh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NDE0OTYsImV4cCI6MjA5NDExNzQ5Nn0.8-hLkiSR6BPck-DtkiZiwMA5KRtfHUhjN61g4QPE68o';
-        
-        const { createClient } = supabase;
-        const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
-        window.supabase = _supabase;
-    </script>
-    
-    <!-- Seu script de lógica -->
+    <!-- Conversa com o back-end (login e sessão) -->
+    <script src="api.js"></script>
     <script src="script.js"></script>
 
     <!-- VLibras -->

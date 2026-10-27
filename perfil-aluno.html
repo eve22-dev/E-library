@@ -16,19 +16,17 @@
         .value-custom { font-size: 1.1rem; font-weight: 500; color: #031330; }
     </style>
 </head>
-<body> 
+<body>
 
-    <div class="profile-header d-flex flex-column align-items-center justify-content-center pb-5">
-    <h2 class="fw-bold mb-3">Meu Perfil</h2> 
+<div class="profile-header d-flex flex-column align-items-center justify-content-center pb-5">
+    <h2 class="fw-bold mb-3">Meu Perfil</h2>
     <div class="avatar-wrapper mb-2">
         <i class="bi bi-person-circle" style="font-size: 5rem; color: #fff;"></i>
     </div>
-    <!-- O nome e o RGM agora ficam aqui dentro, com as classes text-white e text-white-50 -->
     <h3 class="fw-bold text-white mb-0" id="nomeAluno">Carregando...</h3>
     <p class="text-white-50" id="rgmAluno">RGM: ...</p>
 </div>
 
-<!-- A margem negativa agora puxa apenas o card para cima do degradê -->
 <div class="container text-center mb-5" style="margin-top: -40px;">
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-7">
@@ -43,7 +41,7 @@
                         <span class="value-custom" id="emailAluno">Carregando...</span>
                     </div>
                 </div>
-                
+
                 <hr class="my-4 opacity-25">
 
                 <div class="d-flex justify-content-center gap-3">
@@ -55,52 +53,32 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        const SUPABASE_URL = 'https://axeyrwilhvbzlfukivhu.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4ZXlyd2lsaHZiemxmdWtpdmh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NDE0OTYsImV4cCI6MjA5NDExNzQ5Nn0.8-hLkiSR6BPck-DtkiZiwMA5KRtfHUhjN61g4QPE68o';
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                window.supabase = windowSupabase;
-
-                new window.VLibras.Widget('https://vlibras.gov.br/app');
-
-                    const BACKEND_URL = "https://e-library-backend-qytl.onrender.com";
-
-            let tamanhoFonteAtual = 16;
-        function aplicarAcessibilidadeSalva() {
-            const fonteSalva = localStorage.getItem('acessibilidade_fonte');
-            if (fonteSalva) { tamanhoFonteAtual = parseInt(fonteSalva); document.documentElement.style.fontSize = tamanhoFonteAtual + 'px'; }
-            const contrasteSalvo = localStorage.getItem('acessibilidade_contraste');
-            if (contrasteSalvo === 'true') document.body.classList.add('alto-contraste');
-        }
+<script src="api.js"></script>
+<script>
+    // Aluno e professor usam esta tela; bibliotecário vai para o painel
+    if (exigirPapel(['aluno', 'professor'])) {
+        window.addEventListener('DOMContentLoaded', carregarPerfil);
+    }
 
     async function carregarPerfil() {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (!session) {
-            window.location.href = "index.html";
-            return;
-        }
+        aplicarAcessibilidadeSalva();
 
-        const { data: usuario } = await supabaseClient
-            .from('usuarios')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+        try {
+            const resposta = await fetch(`${API_URL}/api/me`);
+            if (!resposta.ok) throw new Error('Falha ao carregar o perfil');
 
-        if (usuario) {
+            const usuario = await resposta.json();
+
             document.getElementById('nomeAluno').textContent = usuario.nome;
             document.getElementById('rgmAluno').textContent = `RGM: ${usuario.rgm || 'Não possui'}`;
             document.getElementById('emailAluno').textContent = usuario.email;
             document.getElementById('cursoAluno').textContent = usuario.curso || 'Não cadastrado';
+        } catch (erro) {
+            document.getElementById('nomeAluno').textContent = 'Erro ao carregar o perfil';
         }
     }
 
-    document.getElementById('btnLogout').addEventListener('click', async () => {
-        await supabaseClient.auth.signOut();
-        window.location.href = 'index.html';
-    });
-
-    window.addEventListener('DOMContentLoaded', carregarPerfil);
+    document.getElementById('btnLogout').addEventListener('click', sair);
 </script>
 </body>
 </html>

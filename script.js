@@ -1,75 +1,60 @@
-document.getElementById('loginForm').addEventListener('submit', async function(event) {
+// Se já está logado, vai direto para a home do papel.
+if (getAccessToken() && getRole()) {
+    irParaHome();
+}
+
+document.getElementById('loginForm').addEventListener('submit', async function (event) {
     event.preventDefault();
 
-    const email = document.getElementById('email').value;
+    const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-    const btnSubmit = document.querySelector('button[type="submit"]');
-    
+    const botao = document.getElementById('btnSubmit');
+
     if (!email || !password) {
         alert("Por favor, preencha todos os campos.");
         return;
     }
 
-    // Feedback visual de carregamento
-    btnSubmit.disabled = true;
-    btnSubmit.innerText = 'Autenticando...';
+    botao.disabled = true;
+    botao.textContent = "Entrando...";
+
+    // O servidor gratuito pode demorar a "acordar" na primeira visita
+    const aviso = setTimeout(() => { botao.textContent = "Acordando o servidor..."; }, 4000);
 
     try {
-        // 1. Faz o login na tabela auth.users do Supabase
-        const { data: authData, error: authError } = await window.supabase.auth.signInWithPassword({
-            email: email,
-            password: password,
+        const resp = await fetch(`${API_URL}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password })
         });
 
-        if (authError) {
-            alert("Erro ao entrar: " + authError.message);
-            btnSubmit.disabled = false;
-            btnSubmit.innerText = 'Entrar';
+        if (resp.status === 401) {
+            alert("E-mail ou senha inválidos.");
             return;
         }
 
-        const userId = authData.user.id;
-
-        // 2. Busca o papel (role) na sua tabela 'usuarios'
-        const { data: perfil, error: perfilError } = await window.supabase
-            .from('usuarios')
-            .select('papel')
-            .eq('id', userId)
-            .single();
-
-        if (perfilError || !perfil) {
-            alert("Perfil não encontrado na base de dados do sistema.");
-            await window.supabase.auth.signOut();
-            btnSubmit.disabled = false;
-            btnSubmit.innerText = 'Entrar';
+        if (resp.status === 403) {
+            alert("Usuário inativo. Procure a biblioteca.");
             return;
         }
 
-        const papel = perfil.papel;
-
-        // 3. Salva a role e os tokens no frontend para usar nas outras telas e nas chamadas do backend
-        localStorage.setItem('userRole', papel);
-        localStorage.setItem('userId', userId);
-        localStorage.setItem('authToken', authData.session.access_token);
-
-        // 4. Roteamento Inteligente baseado EXCLUSIVAMENTE no banco de dados
-        if (papel === 'aluno' || papel === 'professor') {
-            window.location.href = "home-aluno.html";
-        } 
-        else if (papel === 'bibliotecario') {
-            window.location.href = "admin-funcionario.html";
-        } 
-        else {
-            alert("Acesso negado! Papel de usuário desconhecido.");
-            await window.supabase.auth.signOut();
-            btnSubmit.disabled = false;
-            btnSubmit.innerText = 'Entrar';
+        if (!resp.ok) {
+            alert("Não foi possível entrar agora. Tente novamente em instantes.");
+            return;
         }
+
+        // O back devolve: accessToken, refreshToken, role (aluno | professor | bibliotecario) e name
+        salvarSessao(await resp.json());
+
+        // aluno/professor -> home-aluno.html | bibliotecario -> admin-funcionario.html
+        irParaHome();
 
     } catch (err) {
-        console.error("Erro inesperado no login:", err);
-        alert("Ocorreu um erro ao processar o login. Tente novamente.");
-        btnSubmit.disabled = false;
-        btnSubmit.innerText = 'Entrar';
+        console.error("Erro no login:", err);
+        alert("Não foi possível conectar ao servidor. Tente novamente em instantes.");
+    } finally {
+        clearTimeout(aviso);
+        botao.disabled = false;
+        botao.textContent = "Entrar";
     }
 });

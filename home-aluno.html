@@ -188,54 +188,20 @@
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="api.js"></script>
     
     <script>
-        // Inicialização Supabase e VLibras
-        const SUPABASE_URL = 'https://axeyrwilhvbzlfukivhu.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4ZXlyd2lsaHZiemxmdWtpdmh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NDE0OTYsImV4cCI6MjA5NDExNzQ5Nn0.8-hLkiSR6BPck-DtkiZiwMA5KRtfHUhjN61g4QPE68o';
-        const windowSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        window.supabase = windowSupabase;
+        // Aluno e professor entram aqui; bibliotecário vai para a área administrativa
+        exigirPapel(['aluno', 'professor']);
+
         new window.VLibras.Widget('https://vlibras.gov.br/app');
 
-        const BACKEND_URL = "https://e-library-backend-qytl.onrender.com";
-
-        // --- SISTEMA DE ACESSIBILIDADE ---
-        let tamanhoFonteAtual = 16;
-        function aplicarAcessibilidadeSalva() {
-            const fonteSalva = localStorage.getItem('acessibilidade_fonte');
-            if (fonteSalva) { tamanhoFonteAtual = parseInt(fonteSalva); document.documentElement.style.fontSize = tamanhoFonteAtual + 'px'; }
-            const contrasteSalvo = localStorage.getItem('acessibilidade_contraste');
-            if (contrasteSalvo === 'true') document.body.classList.add('alto-contraste');
-        }
-
-        function alterarFonte(acao) {
-            if (acao === 1 && tamanhoFonteAtual < 24) tamanhoFonteAtual += 2;
-            else if (acao === -1 && tamanhoFonteAtual > 12) tamanhoFonteAtual -= 2;
-            else if (acao === 0) tamanhoFonteAtual = 16;
-            document.documentElement.style.fontSize = tamanhoFonteAtual + 'px';
-            localStorage.setItem('acessibilidade_fonte', tamanhoFonteAtual);
-        }
-
-        function toggleAltoContraste() {
-            document.body.classList.toggle('alto-contraste');
-            localStorage.setItem('acessibilidade_contraste', document.body.classList.contains('alto-contraste'));
-        }
-        async function sair() {
-            await window.supabase.auth.signOut();
-            ['authToken', 'userId', 'userRole'].forEach(k => localStorage.removeItem(k));
-        window.location.href = 'index.html';
-        }
         document.getElementById('btnSair').addEventListener('click', sair);
-        // --- NAVEGAÇÃO PERFIL ---
-        async function irParaPerfil(e) {
+
+        // --- NAVEGAÇÃO PERFIL (usa o papel que o back devolveu no login) ---
+        function irParaPerfil(e) {
             e.preventDefault();
-            const { data: { session } } = await window.supabase.auth.getSession();
-            if (!session) { alert("Faça login novamente."); window.location.href = "index.html"; return; }
-            
-            const { data: perfil } = await window.supabase.from('usuarios').select('papel').eq('id', session.user.id).single();
-            if (perfil?.papel === 'aluno' || perfil?.papel === 'professor') window.location.href = "perfil-aluno.html";
-            else if (perfil?.papel === 'bibliotecario') window.location.href = "admin-funcionario.html";
+            window.location.href = "perfil-aluno.html";
         }
         document.getElementById('btnMeuPerfil').addEventListener('click', irParaPerfil);
 
@@ -249,15 +215,8 @@
 
             try {
                 const url = `${BACKEND_URL}/api/livros/pesquisa?filtro=${filtro}&termo=${encodeURIComponent(termo)}`;
-                const resposta = await fetch(url, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
-                });
+                const resposta = await fetch(url);
 
-                if (resposta.status === 401) {
-                 alert('Sua sessão expirou. Faça login novamente.');
-                sair();
-                return;
-                }
                 if (!resposta.ok) throw new Error("Erro de conexão");
                 const livros = await resposta.json();
                 container.innerHTML = ''; 
@@ -299,18 +258,9 @@
             try {
                 const resposta = await fetch(`${BACKEND_URL}/api/emprestimos/reservar`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ livroId })
                 });
-
-                if (resposta.status === 401) {
-                    alert('Sua sessão expirou. Faça login novamente.');
-                    sair();
-                    return;
-                }
 
                 if (!resposta.ok) {
                     alert(await resposta.text() || 'Não foi possível realizar a reserva.');
@@ -330,38 +280,24 @@
         }
 
 // --- CARREGAR AVISOS DE VENCIMENTO (só quase vencidos ou vencidos) ---
-const VALOR_MULTA_DIA = 2; // R$ por dia de atraso
-const formatarReal = v => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
 async function carregarAvisosVencimento() {
     const container = document.getElementById('lista-avisos-dinamica');
-    const { data: { session } } = await window.supabase.auth.getSession();
-    if (!session) return;
 
     try {
-        const { data: emprestimos, error } = await window.supabase
-            .from('emprestimos')
-            .select('id, data_prevista, renegociacao_status, livros(titulo)')
-            .eq('user_id', session.user.id)
-            .in('status', ['retirado', 'atrasado'])
-            .order('data_prevista', { ascending: true });
+        const resposta = await fetch(`${BACKEND_URL}/api/emprestimos/meus`);
+        if (!resposta.ok) throw new Error('Falha ao carregar os empréstimos');
+        const emprestimos = await resposta.json();
 
-        if (error) throw error;
-
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-
-        // Só entram os que vencem em até 3 dias ou que já venceram
+        // Só entram os que estão com o usuário e vencem em até 3 dias (ou já venceram)
         const alertas = emprestimos
-            .map(emp => ({ ...emp, dias: Math.round((new Date(emp.data_prevista + 'T00:00:00') - hoje) / 86400000) }))
+            .filter(emp => ['retirado', 'atrasado'].includes(emp.status) && emp.dataPrevista)
+            .map(emp => ({ ...emp, dias: diasParaVencer(emp.dataPrevista) }))
             .filter(emp => emp.dias <= 3);
 
-        // Aviso de multa pendente (vem do back)
+        // Aviso de multa pendente
         let avisoMulta = '';
         try {
-            const r = await fetch(`${BACKEND_URL}/api/multas/minhas`, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
-            });
+            const r = await fetch(`${BACKEND_URL}/api/multas/minhas`);
             if (r.ok) {
                 const pendentes = (await r.json()).filter(m => m.status === 'pendente');
                 if (pendentes.length > 0) {
@@ -382,8 +318,8 @@ async function carregarAvisosVencimento() {
         let avisosHTML = avisoMulta;
 
         alertas.forEach(emp => {
-            const titulo = emp.livros?.titulo || 'Livro';
-            const dataFormatada = new Date(emp.data_prevista + 'T00:00:00').toLocaleDateString('pt-BR');
+            const titulo = esc(emp.livro?.titulo || 'Livro');
+            const dataFormatada = new Date(emp.dataPrevista + 'T00:00:00').toLocaleDateString('pt-BR');
 
             let classeCard = 'alerta-urgente';
             let tag = '';
@@ -400,11 +336,11 @@ async function carregarAvisosVencimento() {
             }
 
             let acao = '';
-            if (emp.renegociacao_status === 'pendente') {
+            if (emp.renegociacaoStatus === 'pendente') {
                 acao = '<span class="badge bg-info text-dark mt-2">Renegociação aguardando aprovação</span>';
-            } else if (emp.renegociacao_status === 'recusada') {
+            } else if (emp.renegociacaoStatus === 'recusada') {
                 acao = '<span class="badge bg-secondary mt-2">Renegociação recusada</span>';
-            } else if (!emp.renegociacao_status) {
+            } else if (!emp.renegociacaoStatus) {
                 acao = `<button class="btn btn-outline-primary btn-sm rounded-pill w-100 mt-2" onclick="renegociar('${emp.id}')"><i class="bi bi-arrow-repeat me-1"></i>Renegociar prazo</button>`;
             }
 
@@ -434,16 +370,7 @@ async function renegociar(id) {
     if (!confirm('Pedir mais prazo para este livro? O bibliotecário precisa aprovar.')) return;
 
     try {
-        const resposta = await fetch(`${BACKEND_URL}/api/emprestimos/${id}/renegociar`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
-        });
-
-        if (resposta.status === 401) {
-            alert('Sua sessão expirou. Faça login novamente.');
-            sair();
-            return;
-        }
+        const resposta = await fetch(`${BACKEND_URL}/api/emprestimos/${id}/renegociar`, { method: 'POST' });
 
         alert(await resposta.text());
         if (resposta.ok) carregarAvisosVencimento();

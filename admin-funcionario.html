@@ -178,18 +178,13 @@
             </div>
         </div></div>
         </div>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="api.js"></script>
     <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
     <script>
-        // CONFIGURAÇÕES SUPABASE E BACKEND
-        const SUPABASE_URL = 'https://axeyrwilhvbzlfukivhu.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4ZXlyd2lsaHZiemxmdWtpdmh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NDE0OTYsImV4cCI6MjA5NDExNzQ5Nn0.8-hLkiSR6BPck-DtkiZiwMA5KRtfHUhjN61g4QPE68o';
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        window.supabase = supabaseClient;
-        
-        new window.VLibras.Widget('https://vlibras.gov.br/app');
+        // Só bibliotecário entra aqui (o back também valida o papel em cada rota)
+        exigirPapel(['bibliotecario']);
 
-        const BACKEND_URL = "https://e-library-backend-qytl.onrender.com";
+        new window.VLibras.Widget('https://vlibras.gov.br/app');
 
         // INICIALIZAÇÃO DA PÁGINA
         document.addEventListener('DOMContentLoaded', () => {
@@ -297,19 +292,24 @@
 
                             <hr>
                             <label class="form-label fw-semibold"><i class="bi bi-upc me-1"></i>Códigos dos exemplares</label>
-                            <div class="input-group" style="max-width: 640px;">
-                                <input type="text" id="cadCodigo" class="form-control" placeholder="Bipe a etiqueta de cada exemplar (Enter para adicionar)" autocomplete="off">
-                                <button type="button" class="btn btn-outline-secondary" onclick="adicionarCodigo()">Adicionar</button>
-                                <button type="button" class="btn btn-outline-secondary" onclick="gerarCodigoAutomatico()">Gerar código</button>
+                            <div class="input-group" style="max-width: 820px;">
+                                <input type="text" id="cadCodigo" class="form-control" placeholder="Bipe ou digite o código e pressione Enter (ou cole vários, separados por vírgula ou espaço)" autocomplete="off">
+                                <button type="button" class="btn btn-primary" onclick="adicionarCodigo()"><i class="bi bi-plus-lg"></i> Adicionar</button>
+                                <input type="number" id="qtdGerar" class="form-control" value="1" min="1" max="50" style="max-width: 80px;" title="Quantos códigos gerar">
+                                <button type="button" class="btn btn-outline-secondary" onclick="gerarCodigoAutomatico()">Gerar código(s)</button>
                             </div>
-                            <div class="form-text">Um código por exemplar. Se o livro físico ainda não tem etiqueta, use Gerar código e cole a etiqueta depois.</div>
-                            <div id="listaCodigos" class="d-flex flex-wrap gap-2 mt-3"></div>
+                            <div class="form-text">Cadastre vários exemplares de uma vez: cada Adicionar (ou Enter) coloca mais um código na lista. Depois é só salvar tudo junto.</div>
+                            <div class="d-flex align-items-center gap-3 mt-3">
+                                <strong id="contadorCodigos"></strong>
+                                <button type="button" class="btn btn-link btn-sm text-danger p-0" onclick="limparCodigos()">Limpar lista</button>
+                            </div>
+                            <div id="listaCodigos" class="d-flex flex-wrap gap-2 mt-2"></div>
 
                             <div class="mt-4 d-flex gap-2">
                                 <button type="button" id="btnSalvarExemplares" class="btn btn-primary px-4 fw-bold" onclick="salvarExemplares()">
                                     <i class="bi bi-check-lg"></i> Salvar exemplares
                                 </button>
-                                <button type="button" class="btn btn-outline-secondary" onclick="mudarAba('exemplares')">Cancelar</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="mudarAba('exemplares')">Novo livro</button>
                             </div>
                         </div>
                     </div>`;
@@ -382,25 +382,12 @@
             }
         }
 
-        // FUNÇÕES DE COMUNICAÇÃO COM O JAVA E SUPABASE
-        function getAuthHeaders() {
-            return {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-            };
-        }
-
-        // --- BUSCAR E PREENCHER CATEGORIAS REAIS DO SUPABASE (Tabela e Dropdown) ---
+        // --- BUSCAR E PREENCHER CATEGORIAS (via back-end) ---
         async function carregarCategorias() {
             try {
-                // Busca direto do banco para garantir que nada é fake
-                const { data: categorias, error } = await window.supabase
-                    .from('categorias')
-                    .select('*')
-                    .eq('ativo', true)
-                    .order('nome', { ascending: true });
-
-                if (error) throw error;
+                const resposta = await fetch(`${BACKEND_URL}/api/categorias`);
+                if (!resposta.ok) throw new Error('Falha ao carregar categorias');
+                const categorias = await resposta.json();
                 
                 window.categoriasCache = categorias;
 
@@ -536,6 +523,7 @@
         function iniciarTelaCadastro() {
             codigosCadastro = [];
             isbnAtual = '';
+            renderizarCodigos();
 
             const campoIsbn = document.getElementById('cadIsbn');
             const campoCodigo = document.getElementById('cadCodigo');
@@ -585,8 +573,8 @@
 
             if (livro) {
                 document.getElementById('cadLivroId').value = livro.id;
+                aviso.className = 'alert alert-info';
                 aviso.innerHTML = `<i class="bi bi-info-circle me-1"></i>Livro já cadastrado: <strong>${esc(livro.titulo)}</strong> (${esc(livro.autor)}). Hoje há <strong>${livro.qtdTotal}</strong> exemplar(es) no acervo. Informe só os códigos dos novos exemplares.`;
-                aviso.classList.remove('d-none');
                 campos.classList.add('d-none');
             } else {
                 document.getElementById('cadLivroId').value = '';
@@ -599,27 +587,35 @@
 
         function adicionarCodigo() {
             const campo = document.getElementById('cadCodigo');
-            const codigo = campo.value.trim().toUpperCase();
-            if (!codigo) return;
 
-            if (codigosCadastro.includes(codigo)) {
-                alert('Este código já está na lista.');
-            } else {
-                codigosCadastro.push(codigo);
-                renderizarCodigos();
-            }
+            // Aceita um código ou vários de uma vez (separados por espaço, vírgula, ponto e vírgula ou quebra de linha)
+            const novos = campo.value.split(/[\s,;]+/).map(c => c.trim().toUpperCase()).filter(Boolean);
+            if (novos.length === 0) return;
+
+            const repetidos = [];
+            novos.forEach(c => {
+                if (codigosCadastro.includes(c)) repetidos.push(c);
+                else codigosCadastro.push(c);
+            });
+
+            renderizarCodigos();
+            if (repetidos.length > 0) alert('Já estavam na lista: ' + repetidos.join(', '));
 
             campo.value = '';
             campo.focus();
         }
 
         function gerarCodigoAutomatico() {
-            let codigo;
-            do {
-                codigo = 'EX-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-            } while (codigosCadastro.includes(codigo));
+            const qtd = Math.min(Math.max(parseInt(document.getElementById('qtdGerar').value) || 1, 1), 50);
 
-            codigosCadastro.push(codigo);
+            for (let i = 0; i < qtd; i++) {
+                let codigo;
+                do {
+                    codigo = 'EX-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                } while (codigosCadastro.includes(codigo));
+                codigosCadastro.push(codigo);
+            }
+
             renderizarCodigos();
         }
 
@@ -628,11 +624,25 @@
             renderizarCodigos();
         }
 
+        function limparCodigos() {
+            codigosCadastro = [];
+            renderizarCodigos();
+            document.getElementById('cadCodigo').focus();
+        }
+
         function renderizarCodigos() {
             const div = document.getElementById('listaCodigos');
             if (!div) return;
 
-            div.innerHTML = codigosCadastro.length === 0
+            const n = codigosCadastro.length;
+
+            document.getElementById('contadorCodigos').textContent = n === 1 ? '1 exemplar na lista' : `${n} exemplares na lista`;
+
+            const btn = document.getElementById('btnSalvarExemplares');
+            btn.disabled = n === 0;
+            btn.innerHTML = `<i class="bi bi-check-lg"></i> ${n > 1 ? 'Salvar ' + n + ' exemplares' : 'Salvar exemplar'}`;
+
+            div.innerHTML = n === 0
                 ? '<span class="text-muted small">Nenhum exemplar adicionado ainda.</span>'
                 : codigosCadastro.map(c => `
                     <span class="badge text-bg-light border fs-6 fw-normal d-inline-flex align-items-center gap-2">
@@ -681,15 +691,25 @@
 
                 if (response.ok) {
                     const r = await response.json();
-                    alert(`${r.codigosCadastrados.length} exemplar(es) cadastrado(s) para "${r.titulo}". Total no acervo: ${r.qtdTotal}.`);
-                    mudarAba('exemplares');
+                    const n = r.codigosCadastrados.length;
+
+                    // Continua no mesmo livro: dá para cadastrar mais exemplares sem repetir o processo
+                    document.getElementById('cadLivroId').value = r.livroId;
+                    const aviso = document.getElementById('livroEncontrado');
+                    aviso.className = 'alert alert-success';
+                    aviso.innerHTML = `<i class="bi bi-check-circle me-1"></i>${n} exemplar(es) cadastrado(s) para <strong>${esc(r.titulo)}</strong>. Total no acervo: <strong>${r.qtdTotal}</strong>. Pode adicionar mais exemplares deste livro ou clicar em Novo livro.`;
+                    document.getElementById('camposLivro').classList.add('d-none');
+
+                    codigosCadastro = [];
+                    renderizarCodigos();
+                    document.getElementById('cadCodigo').focus();
                 } else {
                     alert(await response.text() || 'Erro ao salvar os exemplares.');
+                    renderizarCodigos();
                 }
             } catch (error) {
                 alert('Erro de rede ao contactar o servidor.');
-            } finally {
-                btn.disabled = false;
+                renderizarCodigos();
             }
         }
 
@@ -727,7 +747,6 @@
         }
         
         // LISTAR ACERVO
-const esc = s => String(s ?? '-').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 async function carregarAcervo() {
     const div = document.getElementById('listaAcervo');
@@ -869,14 +888,7 @@ async function confirmarExclusaoCategoria() {
 }
 
 // ===== EMPRÉSTIMOS: DEVOLUÇÃO, EXTRAVIO, RENEGOCIAÇÃO E MULTAS =====
-const VALOR_MULTA_DIA = 2; // R$ por dia de atraso
-const formatarReal = v => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-function diasParaVencer(dataPrevista) {
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    return Math.round((new Date(dataPrevista + 'T00:00:00') - hoje) / 86400000);
-}
 
 // LIVROS EMPRESTADOS (aguardando devolução)
 async function carregarDevolucoes() {
@@ -1260,18 +1272,9 @@ async function adicionarExemplarAoLivro() {
     document.getElementById(modal).addEventListener('shown.bs.modal', () => document.getElementById(campo).focus());
 });
 
-        // --- SISTEMA DE LOGOUT CORRIGIDO ---
-        document.getElementById('btnLogout').addEventListener('click', async (e) => {
-            e.preventDefault();
-            const { error } = await window.supabase.auth.signOut();
-            if (error) {
-                console.error("Erro no logout:", error);
-            }
-            localStorage.clear();
-            window.location.href = 'index.html';
-        });
+        // --- SAIR ---
+        document.getElementById('btnLogout').addEventListener('click', (e) => { e.preventDefault(); sair(); });
 
     </script>
-    <script src="auth-guard.js"></script>
 </body>
 </html>
