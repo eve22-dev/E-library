@@ -316,6 +316,20 @@
                 carregarCategorias();
                 iniciarTelaCadastro();
 
+            } else if (aba === 'acervo') {
+    container.innerHTML = `
+        <h2 class="fw-bold text-dark">Acervo</h2>
+        <p class="text-muted">Livros cadastrados e ativos no sistema.</p>
+        <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
+            <div class="input-group mb-3" style="max-width: 500px;">
+                <input type="text" id="buscaAcervo" class="form-control" placeholder="Buscar por título...">
+                <button class="btn btn-primary" onclick="carregarAcervo()"><i class="bi bi-search"></i></button>
+            </div>
+            <div id="listaAcervo" class="table-responsive">
+                <p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando acervo...</p>
+            </div>
+        </div>`;
+    carregarAcervo();
             } else if (aba === 'tabelas') {
                 container.innerHTML = `
                     <div class="d-flex justify-content-between align-items-center mb-4">
