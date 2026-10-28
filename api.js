@@ -123,13 +123,15 @@ window.fetch = async function (input, init = {}) {
 
     const montar = () => {
         const headers = new Headers(init.headers || {});
-        headers.set("Authorization", `Bearer ${getAccessToken()}`);
+        const token = getAccessToken();
+        if (token) headers.set("Authorization", `Bearer ${token}`);
         return { ...init, headers };
     };
 
     let resposta = await fetchOriginal(input, montar());
 
-    if (resposta.status === 401) {
+    // Só tenta renovar a sessão quem estava logado (páginas públicas não têm token)
+    if (resposta.status === 401 && getAccessToken()) {
         if (await renovarSessao()) {
             resposta = await fetchOriginal(input, montar());
         } else {

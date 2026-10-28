@@ -50,7 +50,13 @@
                 <li class="nav-item mb-2">
                     <a class="nav-link position-relative" onclick="mudarAba('mensagens', event)">
                         <i class="bi bi-chat-dots me-2"></i> Solicitações Chat
-                        <span class="position-absolute top-50 start-85 translate-middle p-1 bg-danger border border-light rounded-circle" id="badgeNotificacao"></span>
+                        <span class="position-absolute top-50 start-85 translate-middle p-1 bg-danger border border-light rounded-circle d-none" id="badgeNotificacao"></span>
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link position-relative" onclick="mudarAba('suporte', event)">
+                        <i class="bi bi-life-preserver me-2"></i> Suporte de Acesso
+                        <span class="position-absolute top-50 start-85 translate-middle p-1 bg-danger border border-light rounded-circle d-none" id="badgeSuporte"></span>
                     </a>
                 </li>
             </ul>
@@ -179,6 +185,8 @@
         </div></div>
         </div>
     <script src="api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
     <script>
         // Só bibliotecário entra aqui (o back também valida o papel em cada rota)
@@ -190,6 +198,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             mudarAba('emprestimos', { currentTarget: document.querySelector('.nav-link.active') });
             carregarCategorias(); // Carrega as categorias REAIS do banco logo ao abrir o site
+            atualizarBadges();
         });
 
         // NAVEGAÇÃO DE ABAS
@@ -386,11 +395,61 @@
             } else if (aba === 'mensagens') {
                 container.innerHTML = `
                     <h2 class="fw-bold text-dark">Solicitações de Atendimento (Chat)</h2>
+                    <p class="text-muted">Dúvidas que os usuários enviaram pelo chat, com os anexos.</p>
                     <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
-                        <div id="listaMensagens" class="list-group">
-                            <p class="text-muted">Integração pendente.</p>
+                        <div id="listaMensagens" class="table-responsive">
+                            <p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando...</p>
                         </div>
                     </div>`;
+                carregarChatAdmin();
+
+            } else if (aba === 'suporte') {
+                container.innerHTML = `
+                    <h2 class="fw-bold text-dark">Suporte de Acesso</h2>
+                    <p class="text-muted">Pedidos de quem está com dificuldade para entrar no sistema (enviados pela página pública de suporte).</p>
+                    <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
+                        <div id="listaSuporte" class="table-responsive">
+                            <p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando...</p>
+                        </div>
+                    </div>`;
+                carregarSuporteAcesso();
+
+            } else if (aba === 'relatorios') {
+                container.innerHTML = `
+                    <h2 class="fw-bold text-dark">Relatórios</h2>
+                    <p class="text-muted">Acompanhe os números da biblioteca e baixe os dados em Excel.</p>
+
+                    <div class="row g-3 mt-1" id="cartoesResumo"></div>
+
+                    <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
+                        <div class="d-flex flex-wrap gap-2 mb-3" id="botoesRelatorio"></div>
+
+                        <div class="row g-2 align-items-end mb-3">
+                            <div class="col-auto">
+                                <label class="form-label small fw-semibold mb-1">De</label>
+                                <input type="date" id="relDe" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-auto">
+                                <label class="form-label small fw-semibold mb-1">Até</label>
+                                <input type="date" id="relAte" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn btn-primary btn-sm" onclick="carregarRelatorio(relatorioAtual)"><i class="bi bi-arrow-clockwise"></i> Atualizar</button>
+                            </div>
+                            <div class="col-auto ms-auto d-flex gap-2">
+                                <button class="btn btn-success btn-sm" onclick="baixarExcelAtual()"><i class="bi bi-file-earmark-excel"></i> Baixar este relatório</button>
+                                <button class="btn btn-outline-success btn-sm" onclick="baixarExcelCompleto()"><i class="bi bi-file-earmark-spreadsheet"></i> Baixar todos</button>
+                            </div>
+                        </div>
+
+                        <h5 class="fw-bold" id="tituloRelatorio"></h5>
+                        <div style="position: relative; height: 320px;" class="mb-4">
+                            <canvas id="graficoRelatorio"></canvas>
+                        </div>
+                        <div id="tabelaRelatorio" class="table-responsive"></div>
+                    </div>`;
+                iniciarRelatorios();
+
             } else {
                 container.innerHTML = `<h2 class="fw-bold text-dark">Em Desenvolvimento</h2>`;
             }
@@ -1285,6 +1344,354 @@ async function adicionarExemplarAoLivro() {
 [['modalEntrega', 'entregaCodigo'], ['modalReposicao', 'reposicaoCodigo'], ['modalExemplares', 'exemplaresNovoCodigo']].forEach(([modal, campo]) => {
     document.getElementById(modal).addEventListener('shown.bs.modal', () => document.getElementById(campo).focus());
 });
+
+
+// ===================== SUPORTE, CHAT E RELATÓRIOS =====================
+
+const dataHora = iso => iso ? new Date(iso).toLocaleString('pt-BR') : '-';
+
+// Bolinhas vermelhas do menu: só aparecem quando há pendências
+async function atualizarBadges() {
+    try {
+        const [chat, acesso] = await Promise.all([
+            fetch(`${BACKEND_URL}/api/suporte/chat?status=pendente`).then(r => r.ok ? r.json() : []),
+            fetch(`${BACKEND_URL}/api/suporte/acesso?status=pendente`).then(r => r.ok ? r.json() : [])
+        ]);
+
+        document.getElementById('badgeNotificacao').classList.toggle('d-none', chat.length === 0);
+        document.getElementById('badgeSuporte').classList.toggle('d-none', acesso.length === 0);
+    } catch (e) { /* sem bolinhas */ }
+}
+
+// ---- Solicitações do chat ----
+async function carregarChatAdmin() {
+    const div = document.getElementById('listaMensagens');
+    if (!div) return;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/suporte/chat`);
+        if (!response.ok) throw new Error('Falha na API');
+        const lista = await response.json();
+
+        if (lista.length === 0) {
+            div.innerHTML = '<p class="text-muted mb-0"><i class="bi bi-check-circle text-success me-2"></i>Nenhuma solicitação até agora.</p>';
+            return;
+        }
+
+        // pendentes primeiro
+        lista.sort((a, b) => (a.status === 'pendente' ? 0 : 1) - (b.status === 'pendente' ? 0 : 1));
+
+        let html = `<table class="table align-middle table-hover">
+            <thead class="table-light"><tr><th>Data</th><th>Usuário</th><th>Mensagem</th><th>Anexos</th><th>Situação</th><th class="text-end">Ações</th></tr></thead><tbody>`;
+
+        lista.forEach(m => {
+            const pendente = String(m.status).toLowerCase() === 'pendente';
+            const anexos = (m.anexos || []).map(a =>
+                `<button class="btn btn-outline-secondary btn-sm mb-1" onclick="baixarAnexo('${a.id}', this.dataset.nome)" data-nome="${esc(a.nome)}"><i class="bi bi-paperclip"></i> ${esc(a.nome)}</button>`
+            ).join('<br>') || '<span class="text-muted small">-</span>';
+
+            html += `<tr>
+                <td class="small text-nowrap">${dataHora(m.criadoEm)}</td>
+                <td class="small">${esc(m.nome)}<br><a href="mailto:${esc(m.email)}">${esc(m.email)}</a></td>
+                <td style="max-width: 320px; white-space: pre-wrap;">${esc(m.mensagem)}</td>
+                <td>${anexos}</td>
+                <td>${pendente
+                    ? '<span class="badge bg-warning text-dark rounded-pill px-3 py-2">Pendente</span>'
+                    : '<span class="badge bg-success rounded-pill px-3 py-2">Resolvido</span>'}</td>
+                <td class="text-end text-nowrap">
+                    <a class="btn btn-outline-primary action-btn rounded-pill" href="mailto:${esc(m.email)}?subject=${encodeURIComponent('E-Library - resposta à sua dúvida')}"><i class="bi bi-reply"></i> Responder</a>
+                    ${pendente ? `<button class="btn btn-success action-btn rounded-pill fw-bold" onclick="resolverChat('${m.id}')"><i class="bi bi-check2"></i> Resolver</button>` : ''}
+                </td>
+            </tr>`;
+        });
+
+        div.innerHTML = html + '</tbody></table>';
+    } catch (error) {
+        div.innerHTML = '<p class="text-danger">Erro ao carregar as solicitações.</p>';
+    }
+}
+
+async function resolverChat(id) {
+    if (!confirm('Marcar esta solicitação como resolvida?')) return;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/suporte/chat/${id}/resolver`, { method: 'PUT' });
+        if (!response.ok) { alert(await response.text()); return; }
+        carregarChatAdmin();
+        atualizarBadges();
+    } catch (error) {
+        alert('Erro de comunicação com o servidor.');
+    }
+}
+
+// O download precisa do token, então busca o arquivo pelo front e entrega como download
+async function baixarAnexo(id, nome) {
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/anexos/${id}`);
+        if (!response.ok) { alert('Não foi possível baixar o anexo.'); return; }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = nome || 'anexo';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        alert('Erro de comunicação com o servidor.');
+    }
+}
+
+// ---- Suporte de acesso ----
+async function carregarSuporteAcesso() {
+    const div = document.getElementById('listaSuporte');
+    if (!div) return;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/suporte/acesso`);
+        if (!response.ok) throw new Error('Falha na API');
+        const lista = await response.json();
+
+        if (lista.length === 0) {
+            div.innerHTML = '<p class="text-muted mb-0"><i class="bi bi-check-circle text-success me-2"></i>Nenhum pedido de suporte até agora.</p>';
+            return;
+        }
+
+        lista.sort((a, b) => (a.status === 'pendente' ? 0 : 1) - (b.status === 'pendente' ? 0 : 1));
+
+        let html = `<table class="table align-middle table-hover">
+            <thead class="table-light"><tr><th>Data</th><th>Nome</th><th>E-mail</th><th>Descrição</th><th>Situação</th><th class="text-end">Ações</th></tr></thead><tbody>`;
+
+        lista.forEach(p => {
+            const pendente = p.status === 'pendente';
+
+            html += `<tr>
+                <td class="small text-nowrap">${dataHora(p.criadoEm)}</td>
+                <td class="fw-semibold">${esc(p.nome)}</td>
+                <td class="small"><a href="mailto:${esc(p.email)}">${esc(p.email)}</a></td>
+                <td style="max-width: 340px; white-space: pre-wrap;">${esc(p.descricao)}</td>
+                <td>${pendente
+                    ? '<span class="badge bg-warning text-dark rounded-pill px-3 py-2">Pendente</span>'
+                    : `<span class="badge bg-success rounded-pill px-3 py-2">Resolvido</span><div class="small text-muted mt-1">${dataHora(p.resolvidoEm)}</div>`}</td>
+                <td class="text-end text-nowrap">
+                    <a class="btn btn-outline-primary action-btn rounded-pill" href="mailto:${esc(p.email)}?subject=${encodeURIComponent('E-Library - suporte de acesso')}"><i class="bi bi-reply"></i> Responder</a>
+                    ${pendente ? `<button class="btn btn-success action-btn rounded-pill fw-bold" onclick="resolverSuporte('${p.id}')"><i class="bi bi-check2"></i> Resolver</button>` : ''}
+                </td>
+            </tr>`;
+        });
+
+        div.innerHTML = html + '</tbody></table>';
+    } catch (error) {
+        div.innerHTML = '<p class="text-danger">Erro ao carregar os pedidos de suporte.</p>';
+    }
+}
+
+async function resolverSuporte(id) {
+    if (!confirm('Marcar este pedido como resolvido?')) return;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/suporte/acesso/${id}/resolver`, { method: 'PUT' });
+        if (!response.ok) { alert(await response.text()); return; }
+        carregarSuporteAcesso();
+        atualizarBadges();
+    } catch (error) {
+        alert('Erro de comunicação com o servidor.');
+    }
+}
+
+// ---- Relatórios (dashboard + Excel) ----
+const RELATORIOS = {
+    'livros-emprestimos': {
+        titulo: 'Livros x Empréstimos',
+        colunas: [['titulo', 'Título'], ['autor', 'Autor'], ['editora', 'Editora'], ['total_emprestimos', 'Empréstimos'], ['em_andamento', 'Em andamento'], ['devolvidos', 'Devolvidos']],
+        rotulo: l => l.titulo, valor: 'total_emprestimos', legenda: 'Empréstimos'
+    },
+    'usuarios-emprestimos': {
+        titulo: 'Usuários x Empréstimos',
+        colunas: [['nome', 'Nome'], ['email', 'E-mail'], ['papel', 'Perfil'], ['total_emprestimos', 'Empréstimos'], ['em_andamento', 'Em andamento'], ['devolvidos', 'Devolvidos'], ['extravios', 'Extravios']],
+        rotulo: u => u.nome, valor: 'total_emprestimos', legenda: 'Empréstimos'
+    },
+    'usuarios-multas': {
+        titulo: 'Usuários x Multas',
+        colunas: [['nome', 'Nome'], ['email', 'E-mail'], ['papel', 'Perfil'], ['qtd_multas', 'Multas'], ['dias_atraso_total', 'Dias de atraso'], ['valor_total', 'Valor total (R$)'], ['valor_pendente', 'Pendente (R$)'], ['valor_pago', 'Pago (R$)']],
+        rotulo: u => u.nome, valor: 'valor_total', legenda: 'Valor total das multas (R$)', moeda: ['valor_total', 'valor_pendente', 'valor_pago']
+    },
+    'livros-extravios': {
+        titulo: 'Livros x Extravios',
+        colunas: [['titulo', 'Título'], ['autor', 'Autor'], ['extravios', 'Extravios'], ['aguardando_reposicao', 'Aguardando reposição'], ['repostos', 'Repostos'], ['baixados', 'Baixados']],
+        rotulo: l => l.titulo, valor: 'extravios', legenda: 'Extravios'
+    }
+};
+
+let relatorioAtual = 'livros-emprestimos';
+let graficoRelatorio = null;
+const dadosRelatorio = {};
+
+function paramsPeriodo() {
+    const de = document.getElementById('relDe').value;
+    const ate = document.getElementById('relAte').value;
+    const p = new URLSearchParams();
+    if (de) p.set('de', de);
+    if (ate) p.set('ate', ate);
+    return p.toString() ? '?' + p.toString() : '';
+}
+
+function iniciarRelatorios() {
+    // período padrão: últimos 12 meses
+    const hoje = new Date();
+    const inicio = new Date();
+    inicio.setFullYear(hoje.getFullYear() - 1);
+    document.getElementById('relDe').value = inicio.toISOString().slice(0, 10);
+    document.getElementById('relAte').value = hoje.toISOString().slice(0, 10);
+
+    document.getElementById('botoesRelatorio').innerHTML = Object.entries(RELATORIOS).map(([chave, r]) =>
+        `<button type="button" class="btn btn-outline-primary btn-sm rounded-pill" data-rel="${chave}" onclick="carregarRelatorio('${chave}')">${r.titulo}</button>`
+    ).join('');
+
+    carregarResumo();
+    carregarRelatorio(relatorioAtual);
+}
+
+async function carregarResumo() {
+    const div = document.getElementById('cartoesResumo');
+    if (!div) return;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/relatorios/resumo`);
+        if (!response.ok) throw new Error('Falha na API');
+        const r = await response.json();
+
+        const cartao = (icone, rotulo, valor, cor) => `
+            <div class="col-6 col-lg-4 col-xl-2">
+                <div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-body">
+                    <i class="bi ${icone} text-${cor}" style="font-size: 1.4rem;"></i>
+                    <div class="fs-4 fw-bold">${valor}</div>
+                    <div class="small text-muted">${rotulo}</div>
+                </div></div>
+            </div>`;
+
+        div.innerHTML =
+            cartao('bi-journal-bookmark', 'Livros ativos', r.livros_ativos, 'primary') +
+            cartao('bi-upc', 'Exemplares no acervo', r.exemplares_no_acervo, 'primary') +
+            cartao('bi-arrow-left-right', 'Empréstimos em andamento', r.emprestimos_em_andamento, 'success') +
+            cartao('bi-alarm', 'Empréstimos atrasados', r.emprestimos_atrasados, 'danger') +
+            cartao('bi-cash-coin', 'Multas pendentes', formatarReal(r.multas_pendentes), 'danger') +
+            cartao('bi-exclamation-octagon', 'Extravios aguardando reposição', r.extravios_aguardando, 'dark');
+    } catch (error) {
+        div.innerHTML = '<p class="text-danger">Erro ao carregar o resumo.</p>';
+    }
+}
+
+async function buscarRelatorio(chave) {
+    const response = await fetch(`${BACKEND_URL}/api/relatorios/${chave}${paramsPeriodo()}`);
+    if (!response.ok) throw new Error('Falha na API');
+    return response.json();
+}
+
+async function carregarRelatorio(chave) {
+    relatorioAtual = chave;
+    const def = RELATORIOS[chave];
+
+    document.querySelectorAll('#botoesRelatorio button').forEach(b => {
+        const ativo = b.dataset.rel === chave;
+        b.classList.toggle('btn-primary', ativo);
+        b.classList.toggle('btn-outline-primary', !ativo);
+    });
+
+    document.getElementById('tituloRelatorio').textContent = def.titulo;
+    document.getElementById('tabelaRelatorio').innerHTML = '<p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando...</p>';
+
+    try {
+        const dados = await buscarRelatorio(chave);
+        dadosRelatorio[chave] = dados;
+        desenharRelatorio(chave, dados);
+    } catch (error) {
+        document.getElementById('tabelaRelatorio').innerHTML = '<p class="text-danger">Erro ao carregar o relatório.</p>';
+    }
+}
+
+function formatarCelula(def, campo, valor) {
+    if (valor === null || valor === undefined) return '-';
+    if (def.moeda && def.moeda.includes(campo)) return formatarReal(valor);
+    return esc(valor);
+}
+
+function desenharRelatorio(chave, dados) {
+    const def = RELATORIOS[chave];
+
+    // gráfico: os 10 maiores
+    const top = dados.slice(0, 10);
+    if (graficoRelatorio) graficoRelatorio.destroy();
+
+    graficoRelatorio = new Chart(document.getElementById('graficoRelatorio'), {
+        type: 'bar',
+        data: {
+            labels: top.map(def.rotulo),
+            datasets: [{ label: def.legenda, data: top.map(d => Number(d[def.valor])), backgroundColor: '#1e3a8a', borderRadius: 6 }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: true }, title: { display: dados.length === 0, text: 'Sem dados no período' } },
+            scales: { x: { beginAtZero: true } }
+        }
+    });
+
+    // tabela completa
+    if (dados.length === 0) {
+        document.getElementById('tabelaRelatorio').innerHTML = '<p class="text-muted mb-0">Nenhum registro no período escolhido.</p>';
+        return;
+    }
+
+    let html = '<table class="table table-sm align-middle table-hover"><thead class="table-light"><tr>' +
+        def.colunas.map(([, rotulo]) => `<th>${rotulo}</th>`).join('') + '</tr></thead><tbody>';
+
+    dados.forEach(linha => {
+        html += '<tr>' + def.colunas.map(([campo]) => `<td>${formatarCelula(def, campo, linha[campo])}</td>`).join('') + '</tr>';
+    });
+
+    document.getElementById('tabelaRelatorio').innerHTML = html + '</tbody></table>';
+}
+
+// Converte as linhas do relatório para o formato do Excel (títulos legíveis)
+function linhasParaExcel(chave, dados) {
+    const def = RELATORIOS[chave];
+    return dados.map(linha => {
+        const novo = {};
+        def.colunas.forEach(([campo, rotulo]) => { novo[rotulo] = linha[campo]; });
+        return novo;
+    });
+}
+
+function baixarExcelAtual() {
+    const dados = dadosRelatorio[relatorioAtual];
+    if (!dados || dados.length === 0) { alert('Não há dados para baixar neste período.'); return; }
+
+    const planilha = XLSX.utils.json_to_sheet(linhasParaExcel(relatorioAtual, dados));
+    const arquivo = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(arquivo, planilha, RELATORIOS[relatorioAtual].titulo.substring(0, 31));
+    XLSX.writeFile(arquivo, `relatorio-${relatorioAtual}.xlsx`);
+}
+
+async function baixarExcelCompleto() {
+    try {
+        const arquivo = XLSX.utils.book_new();
+
+        for (const chave of Object.keys(RELATORIOS)) {
+            const dados = await buscarRelatorio(chave);
+            const planilha = XLSX.utils.json_to_sheet(dados.length ? linhasParaExcel(chave, dados) : [{ Aviso: 'Sem dados no período' }]);
+            XLSX.utils.book_append_sheet(arquivo, planilha, RELATORIOS[chave].titulo.substring(0, 31));
+        }
+
+        XLSX.writeFile(arquivo, 'relatorios-e-library.xlsx');
+    } catch (error) {
+        alert('Erro ao gerar o Excel completo.');
+    }
+}
+
 
         // --- SAIR ---
         document.getElementById('btnLogout').addEventListener('click', (e) => { e.preventDefault(); sair(); });

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-library | Suporte de acesso</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="d-flex align-items-center py-4 bg-light">
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-5">
+
+                <div class="card shadow-lg border-0 rounded-4">
+                    <div class="card-body p-5">
+
+                        <header class="mb-4 text-center">
+                            <i class="bi bi-life-preserver text-primary" style="font-size: 2.5rem;"></i>
+                            <h1 class="h3 fw-bold text-primary mt-2">Suporte de acesso</h1>
+                            <p class="text-muted small mb-0">Está com dificuldade para entrar? Conte o que aconteceu e a equipe da biblioteca entra em contato pelo seu e-mail.</p>
+                        </header>
+
+                        <form id="formSuporte" novalidate>
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="nome" placeholder="Nome completo" maxlength="120" required>
+                                <label for="nome">Nome completo</label>
+                            </div>
+
+                            <div class="form-floating mb-3">
+                                <input type="email" class="form-control" id="email" placeholder="nome@fatec.sp.gov.br" maxlength="160" required>
+                                <label for="email">E-mail institucional</label>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="descricao" class="form-label fw-semibold small">O que está acontecendo?</label>
+                                <textarea class="form-control" id="descricao" rows="5" maxlength="2000" placeholder="Ex.: esqueci a senha, aparece 'usuário inativo', meu e-mail não é reconhecido..." required></textarea>
+                                <div class="form-text text-end"><span id="contador">0</span>/2000</div>
+                            </div>
+
+                            <!-- Campo escondido: só robôs preenchem -->
+                            <div style="position:absolute; left:-9999px;" aria-hidden="true">
+                                <label for="website">Não preencha este campo</label>
+                                <input type="text" id="website" tabindex="-1" autocomplete="off">
+                            </div>
+
+                            <button type="submit" id="btnEnviar" class="btn btn-primary btn-lg w-100 shadow-sm">Enviar solicitação</button>
+                        </form>
+
+                        <div id="sucesso" class="text-center d-none">
+                            <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+                            <h2 class="h5 fw-bold mt-3">Solicitação enviada!</h2>
+                            <p class="text-muted" id="mensagemSucesso"></p>
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <a href="index.html" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i>Voltar para o login</a>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+        const descricao = document.getElementById('descricao');
+        descricao.addEventListener('input', () => {
+            document.getElementById('contador').textContent = descricao.value.length;
+        });
+
+        document.getElementById('formSuporte').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const nome = document.getElementById('nome').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const texto = descricao.value.trim();
+            const botao = document.getElementById('btnEnviar');
+
+            if (nome.length < 3) { alert('Informe o seu nome completo.'); return; }
+            if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { alert('Informe um e-mail institucional válido.'); return; }
+            if (texto.length < 10) { alert('Descreva o problema com pelo menos 10 caracteres.'); return; }
+
+            botao.disabled = true;
+            botao.textContent = 'Enviando...';
+
+            // O servidor gratuito pode demorar a "acordar" na primeira visita
+            const aviso = setTimeout(() => { botao.textContent = 'Acordando o servidor...'; }, 4000);
+
+            try {
+                const resposta = await fetch(`${API_URL}/api/suporte/acesso`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nome, email, descricao: texto,
+                        website: document.getElementById('website').value
+                    })
+                });
+
+                const retorno = await resposta.text();
+
+                if (resposta.ok) {
+                    document.getElementById('formSuporte').classList.add('d-none');
+                    document.getElementById('mensagemSucesso').textContent = retorno;
+                    document.getElementById('sucesso').classList.remove('d-none');
+                } else {
+                    alert(retorno || 'Não foi possível enviar agora. Tente novamente em instantes.');
+                }
+            } catch (erro) {
+                alert('Não foi possível conectar ao servidor. Tente novamente em instantes.');
+            } finally {
+                clearTimeout(aviso);
+                botao.disabled = false;
+                botao.textContent = 'Enviar solicitação';
+            }
+        });
+    </script>
+</body>
+</html>
