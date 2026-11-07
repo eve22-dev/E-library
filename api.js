@@ -185,3 +185,68 @@ function toggleAltoContraste() {
     document.body.classList.toggle("alto-contraste");
     localStorage.setItem("acessibilidade_contraste", document.body.classList.contains("alto-contraste"));
 }
+
+// ---------------- tema claro / escuro (guardado neste navegador) ----------------
+const CSS_TEMA_ESCURO = `
+html.tema-escuro body { background-color: #111827 !important; color: #e5e7eb !important; }
+html.tema-escuro .card, html.tema-escuro .modal-content, html.tema-escuro .dropdown-menu { background-color: #1f2937 !important; color: #e5e7eb !important; border-color: #374151 !important; }
+html.tema-escuro .bg-white { background-color: #1f2937 !important; }
+html.tema-escuro .bg-light { background-color: #182131 !important; }
+html.tema-escuro .text-dark { color: #e5e7eb !important; }
+html.tema-escuro .text-muted, html.tema-escuro .text-secondary { color: #9ca3af !important; }
+html.tema-escuro .table { color: #e5e7eb; --bs-table-bg: transparent; --bs-table-color: #e5e7eb; }
+html.tema-escuro .table-light, html.tema-escuro .table-light th { background-color: #263142 !important; color: #e5e7eb !important; }
+html.tema-escuro .form-control, html.tema-escuro .form-select { background-color: #111827 !important; color: #e5e7eb !important; border-color: #374151 !important; }
+html.tema-escuro .form-control::placeholder { color: #6b7280; }
+html.tema-escuro .alert-light { background-color: #1f2937 !important; color: #e5e7eb !important; }
+html.tema-escuro .list-group-item, html.tema-escuro .dropdown-item { color: #e5e7eb; }
+html.tema-escuro .modal-header, html.tema-escuro .modal-footer { border-color: #374151; }
+html.tema-escuro .btn-close { filter: invert(1); }
+html.tema-escuro .navbar-custom { background-color: #0b1220 !important; }
+html.tema-escuro #chat-box { background: #1f2937; color: #e5e7eb; }
+html.tema-escuro #chat-messages { background: #111827; }
+html.tema-escuro #chat-messages .msg-bot { background: #1f2937; color: #e5e7eb; border-color: #374151; }
+html.tema-escuro #chat-box .chat-entrada, html.tema-escuro #chat-box .chat-acoes, html.tema-escuro #chat-anexos { background: #1f2937; }
+`;
+
+function aplicarTema() {
+    if (!document.getElementById('estilo-tema')) {
+        const estilo = document.createElement('style');
+        estilo.id = 'estilo-tema';
+        estilo.textContent = CSS_TEMA_ESCURO;
+        document.head.appendChild(estilo);
+    }
+
+    const escuro = localStorage.getItem('tema') === 'escuro';
+    document.documentElement.classList.toggle('tema-escuro', escuro);
+
+    document.querySelectorAll('[data-tema-btn]').forEach(b => {
+        b.innerHTML = escuro
+            ? '<i class="bi bi-sun me-1"></i> Tema claro'
+            : '<i class="bi bi-moon-stars me-1"></i> Tema escuro';
+    });
+}
+
+function alternarTema() {
+    const escuro = localStorage.getItem('tema') !== 'escuro';
+    localStorage.setItem('tema', escuro ? 'escuro' : 'claro');
+    aplicarTema();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    aplicarTema();
+
+    // Coloca o botão de tema ao lado do Sair, nas páginas que não têm um botão próprio
+    const sair = document.getElementById('btnLogout') || document.getElementById('btnSair');
+    if (sair && !document.querySelector('[data-tema-btn]')) {
+        const botao = document.createElement('button');
+        botao.type = 'button';
+        botao.dataset.temaBtn = '1';
+        botao.onclick = alternarTema;
+        botao.className = sair.classList.contains('w-100')
+            ? 'btn btn-outline-light btn-sm rounded-pill w-100 mb-2'
+            : 'btn btn-outline-secondary rounded-pill px-3';
+        sair.parentNode.insertBefore(botao, sair);
+        aplicarTema();
+    }
+});

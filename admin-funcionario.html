@@ -269,7 +269,7 @@
                                 <button class="btn btn-primary" type="button" onclick="buscarLivroPorIsbn()"><i class="bi bi-search"></i> Buscar</button>
                             </div>
                             <div class="form-text">O leitor digita o código no campo e confirma sozinho (Enter).</div>
-                            <button type="button" class="btn btn-link px-0 mt-2" onclick="cadastroManualSemIsbn()">Livro sem ISBN? Cadastrar manualmente</button>
+                            <div class="form-text text-danger mt-2">O ISBN é obrigatório para cadastrar um livro novo.</div>
                         </div>
 
                         <!-- PASSO 2: dados + códigos dos exemplares -->
@@ -326,19 +326,51 @@
                 iniciarTelaCadastro();
 
             } else if (aba === 'acervo') {
-    container.innerHTML = `
-        <h2 class="fw-bold text-dark">Acervo</h2>
-        <p class="text-muted">Livros cadastrados e ativos no sistema.</p>
-        <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
-            <div class="input-group mb-3" style="max-width: 500px;">
-                <input type="text" id="buscaAcervo" class="form-control" placeholder="Buscar por título...">
-                <button class="btn btn-primary" onclick="carregarAcervo()"><i class="bi bi-search"></i></button>
-            </div>
-            <div id="listaAcervo" class="table-responsive">
-                <p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando acervo...</p>
-            </div>
-        </div>`;
-    carregarAcervo();
+                container.innerHTML = `
+                    <h2 class="fw-bold text-dark">Acervo</h2>
+                    <p class="text-muted">Consulte todos os livros, ativos e inativos. Use os filtros para encontrar um título, autor, editora, ISBN ou código de exemplar.</p>
+                    <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4">
+                        <div class="row g-2 align-items-end mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold mb-1">Título</label>
+                                <input type="text" id="fTitulo" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small fw-semibold mb-1">Autor</label>
+                                <input type="text" id="fAutor" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small fw-semibold mb-1">Editora</label>
+                                <input type="text" id="fEditora" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small fw-semibold mb-1">ISBN</label>
+                                <input type="text" id="fIsbn" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small fw-semibold mb-1">Código do exemplar</label>
+                                <input type="text" id="fCodigo" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label small fw-semibold mb-1">Situação</label>
+                                <select id="fSituacao" class="form-select form-select-sm">
+                                    <option value="">Todos</option>
+                                    <option value="ativo">Ativo</option>
+                                    <option value="inativo">Inativo</option>
+                                </select>
+                            </div>
+                            <div class="col-12 d-flex gap-2">
+                                <button class="btn btn-primary btn-sm" onclick="carregarAcervo()"><i class="bi bi-funnel"></i> Filtrar</button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="limparFiltroAcervo()">Limpar filtros</button>
+                            </div>
+                        </div>
+                        <div id="listaAcervo" class="table-responsive">
+                            <p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando acervo...</p>
+                        </div>
+                    </div>`;
+                document.querySelectorAll('#conteudoDinamico input').forEach(c => c.addEventListener('keydown', e => { if (e.key === 'Enter') carregarAcervo(); }));
+                carregarAcervo();
+
             } else if (aba === 'tabelas') {
                 container.innerHTML = `
                     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -733,6 +765,10 @@
             if (livroId) {
                 corpo = { livroId, codigos: codigosCadastro };
             } else {
+                if (!isbnAtual) {
+                    alert('O ISBN é obrigatório para cadastrar um livro novo. Bipe ou digite o ISBN antes de continuar.');
+                    return;
+                }
                 const titulo = document.getElementById('livroTitulo').value.trim();
                 const autor = document.getElementById('livroAutor').value.trim();
                 const categoriaId = document.getElementById('livroCategoriaId').value;
@@ -821,52 +857,62 @@
         
         // LISTAR ACERVO
 
-async function carregarAcervo() {
-    const div = document.getElementById('listaAcervo');
-    const termo = document.getElementById('buscaAcervo')?.value || '';
-
-    try {
-        const response = await fetch(
-            `${BACKEND_URL}/api/livros/pesquisa?filtro=titulo&termo=${encodeURIComponent(termo)}`,
-            { headers: getAuthHeaders() }
-        );
-        if (!response.ok) throw new Error('Falha na API');
-        const livros = await response.json();
-        window.acervoCache = livros;
-
-        if (livros.length === 0) {
-            div.innerHTML = '<p class="text-muted mb-0">Nenhum livro encontrado.</p>';
-            return;
+function limparFiltroAcervo() {
+            ['fTitulo', 'fAutor', 'fEditora', 'fIsbn', 'fCodigo'].forEach(id => { document.getElementById(id).value = ''; });
+            document.getElementById('fSituacao').value = '';
+            carregarAcervo();
         }
 
-        let html = `<table class="table align-middle table-hover">
-            <thead class="table-light"><tr><th>Título</th><th>Autor</th><th>Editora</th><th>ISBN</th><th>Disponíveis</th><th class="text-end">Ações</th></tr></thead><tbody>`;
+        async function carregarAcervo() {
+            const div = document.getElementById('listaAcervo');
+            const filtros = new URLSearchParams();
 
-        livros.forEach(l => {
-            html += `<tr>
-                <td class="fw-semibold text-dark">${esc(l.titulo)}</td>
-                <td>${esc(l.autor)}</td>
-                <td>${esc(l.editora)}</td>
-                <td class="small text-muted">${esc(l.isbn)}</td>
-                <td>${l.qtdDisponivel} / ${l.qtdTotal}</td>
-                <td class="text-end text-nowrap">
-                    <button class="btn btn-outline-primary action-btn rounded-pill" onclick="abrirExemplares('${l.id}')">
-                        <i class="bi bi-upc"></i> Exemplares
-                    </button>
-                    <button class="btn btn-outline-danger action-btn rounded-pill" onclick="desativarLivro('${l.id}')">
-                        <i class="bi bi-slash-circle"></i> Desativar
-                    </button>
-                </td>
-            </tr>`;
-        });
+            [['titulo', 'fTitulo'], ['autor', 'fAutor'], ['editora', 'fEditora'], ['isbn', 'fIsbn'], ['codigo', 'fCodigo'], ['situacao', 'fSituacao']]
+                .forEach(([chave, id]) => {
+                    const valor = document.getElementById(id).value.trim();
+                    if (valor) filtros.set(chave, valor);
+                });
 
-        div.innerHTML = html + '</tbody></table>';
-    } catch (error) {
-        div.innerHTML = '<p class="text-danger">Erro ao carregar o acervo.</p>';
-    }
-}
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/livros/acervo?${filtros.toString()}`, { headers: getAuthHeaders() });
+                if (!response.ok) throw new Error(await response.text());
+                const livros = await response.json();
+                window.acervoCache = livros;
 
-// DESATIVAR LIVRO (pede o motivo)
+                if (livros.length === 0) {
+                    div.innerHTML = '<p class="text-muted mb-0">Nenhum livro encontrado com esses filtros.</p>';
+                    return;
+                }
+
+                let html = `<table class="table align-middle table-hover">
+                    <thead class="table-light"><tr><th>Título</th><th>Autor</th><th>Editora</th><th>ISBN</th><th>Situação</th><th>Disponíveis</th><th class="text-end">Ações</th></tr></thead><tbody>`;
+
+                livros.forEach(l => {
+                    const situacao = l.ativo
+                        ? '<span class="badge bg-success rounded-pill">Ativo</span>'
+                        : `<span class="badge bg-secondary rounded-pill">Inativo</span><div class="small text-muted">${esc(l.motivoInatividade)}</div>`;
+
+                    html += `<tr>
+                        <td class="fw-semibold text-dark">${esc(l.titulo)}</td>
+                        <td>${esc(l.autor)}</td>
+                        <td>${esc(l.editora)}</td>
+                        <td class="small text-muted">${esc(l.isbn)}</td>
+                        <td>${situacao}</td>
+                        <td>${l.qtdDisponivel} / ${l.qtdTotal}</td>
+                        <td class="text-end text-nowrap">
+                            <button class="btn btn-outline-primary action-btn rounded-pill" onclick="abrirExemplares('${l.id}')"><i class="bi bi-upc"></i> Exemplares</button>
+                            ${l.ativo ? `<button class="btn btn-outline-danger action-btn rounded-pill" onclick="desativarLivro('${l.id}')"><i class="bi bi-slash-circle"></i> Desativar</button>` : ''}
+                        </td>
+                    </tr>`;
+                });
+
+                div.innerHTML = html + '</tbody></table>';
+            } catch (error) {
+                div.innerHTML = '<p class="text-danger">Erro ao carregar o acervo.</p>';
+            }
+        }
+
+        // DESATIVAR LIVRO (pede o motivo)
 async function desativarLivro(id) {
     const motivo = prompt('Informe o motivo para desativar este livro:');
     if (!motivo) { alert('O motivo é obrigatório.'); return; }
@@ -1363,68 +1409,7 @@ async function atualizarBadges() {
     } catch (e) { /* sem bolinhas */ }
 }
 
-// ---- Solicitações do chat ----
-async function carregarChatAdmin() {
-    const div = document.getElementById('listaMensagens');
-    if (!div) return;
-
-    try {
-        const response = await fetch(`${BACKEND_URL}/api/suporte/chat`);
-        if (!response.ok) throw new Error('Falha na API');
-        const lista = await response.json();
-
-        if (lista.length === 0) {
-            div.innerHTML = '<p class="text-muted mb-0"><i class="bi bi-check-circle text-success me-2"></i>Nenhuma solicitação até agora.</p>';
-            return;
-        }
-
-        // pendentes primeiro
-        lista.sort((a, b) => (a.status === 'pendente' ? 0 : 1) - (b.status === 'pendente' ? 0 : 1));
-
-        let html = `<table class="table align-middle table-hover">
-            <thead class="table-light"><tr><th>Data</th><th>Usuário</th><th>Mensagem</th><th>Anexos</th><th>Situação</th><th class="text-end">Ações</th></tr></thead><tbody>`;
-
-        lista.forEach(m => {
-            const pendente = String(m.status).toLowerCase() === 'pendente';
-            const anexos = (m.anexos || []).map(a =>
-                `<button class="btn btn-outline-secondary btn-sm mb-1" onclick="baixarAnexo('${a.id}', this.dataset.nome)" data-nome="${esc(a.nome)}"><i class="bi bi-paperclip"></i> ${esc(a.nome)}</button>`
-            ).join('<br>') || '<span class="text-muted small">-</span>';
-
-            html += `<tr>
-                <td class="small text-nowrap">${dataHora(m.criadoEm)}</td>
-                <td class="small">${esc(m.nome)}<br><a href="mailto:${esc(m.email)}">${esc(m.email)}</a></td>
-                <td style="max-width: 320px; white-space: pre-wrap;">${esc(m.mensagem)}</td>
-                <td>${anexos}</td>
-                <td>${pendente
-                    ? '<span class="badge bg-warning text-dark rounded-pill px-3 py-2">Pendente</span>'
-                    : '<span class="badge bg-success rounded-pill px-3 py-2">Resolvido</span>'}</td>
-                <td class="text-end text-nowrap">
-                    <a class="btn btn-outline-primary action-btn rounded-pill" href="mailto:${esc(m.email)}?subject=${encodeURIComponent('E-Library - resposta à sua dúvida')}"><i class="bi bi-reply"></i> Responder</a>
-                    ${pendente ? `<button class="btn btn-success action-btn rounded-pill fw-bold" onclick="resolverChat('${m.id}')"><i class="bi bi-check2"></i> Resolver</button>` : ''}
-                </td>
-            </tr>`;
-        });
-
-        div.innerHTML = html + '</tbody></table>';
-    } catch (error) {
-        div.innerHTML = '<p class="text-danger">Erro ao carregar as solicitações.</p>';
-    }
-}
-
-async function resolverChat(id) {
-    if (!confirm('Marcar esta solicitação como resolvida?')) return;
-
-    try {
-        const response = await fetch(`${BACKEND_URL}/api/suporte/chat/${id}/resolver`, { method: 'PUT' });
-        if (!response.ok) { alert(await response.text()); return; }
-        carregarChatAdmin();
-        atualizarBadges();
-    } catch (error) {
-        alert('Erro de comunicação com o servidor.');
-    }
-}
-
-// O download precisa do token, então busca o arquivo pelo front e entrega como download
+// ---- Solicitações do chat (conversa dentro da plataforma) ----
 async function baixarAnexo(id, nome) {
     try {
         const response = await fetch(`${BACKEND_URL}/api/anexos/${id}`);
@@ -1552,6 +1537,7 @@ function iniciarRelatorios() {
 
     carregarResumo();
     carregarRelatorio(relatorioAtual);
+    montarPainelPersonalizado();
 }
 
 async function carregarResumo() {
@@ -1692,6 +1678,334 @@ async function baixarExcelCompleto() {
     }
 }
 
+
+
+// ---- Conversas do chat: o bibliotecário responde DENTRO da plataforma ----
+const conversasAdminCache = {};
+
+async function carregarChatAdmin() {
+    const div = document.getElementById('listaMensagens');
+    if (!div) return;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/suporte/chat`);
+        if (!response.ok) throw new Error('Falha na API');
+        const lista = await response.json();
+
+        lista.forEach(c => { conversasAdminCache[c.id] = c; });
+
+        if (lista.length === 0) {
+            div.innerHTML = '<p class="text-muted mb-0"><i class="bi bi-check-circle text-success me-2"></i>Nenhuma conversa até agora.</p>';
+            return;
+        }
+
+        const situacao = c => {
+            const s = String(c.status).toLowerCase();
+            if (s === 'resolvido') return '<span class="badge bg-success rounded-pill px-3 py-2">Resolvida</span>';
+            if (s === 'respondido') return '<span class="badge bg-info text-dark rounded-pill px-3 py-2">Aguardando o aluno</span>';
+            return '<span class="badge bg-warning text-dark rounded-pill px-3 py-2">Aguardando você</span>';
+        };
+
+        // pendentes primeiro, depois as mais recentes
+        const ordem = c => (String(c.status).toLowerCase() === 'pendente' ? 0 : String(c.status).toLowerCase() === 'respondido' ? 1 : 2);
+        lista.sort((a, b) => ordem(a) - ordem(b));
+
+        let html = `<table class="table align-middle table-hover">
+            <thead class="table-light"><tr><th>Data</th><th>Usuário</th><th>Última mensagem</th><th>Situação</th><th class="text-end">Ações</th></tr></thead><tbody>`;
+
+        lista.forEach(c => {
+            const ultima = (c.respostas && c.respostas.length) ? c.respostas[c.respostas.length - 1].texto : c.mensagem;
+            const naoLidas = c.naoLidas > 0 ? ` <span class="badge bg-danger">${c.naoLidas}</span>` : '';
+
+            html += `<tr>
+                <td class="small text-nowrap">${dataHora(c.criadoEm)}</td>
+                <td class="small">${esc(c.nome)}<br><span class="text-muted">${esc(c.email)}</span></td>
+                <td style="max-width: 320px;" class="text-truncate">${esc(ultima)}${naoLidas}</td>
+                <td>${situacao(c)}</td>
+                <td class="text-end text-nowrap">
+                    <button class="btn btn-outline-primary action-btn rounded-pill fw-bold" onclick="abrirConversa('${c.id}')"><i class="bi bi-chat-text"></i> Abrir</button>
+                </td>
+            </tr>`;
+        });
+
+        div.innerHTML = html + '</tbody></table>';
+    } catch (error) {
+        div.innerHTML = '<p class="text-danger">Erro ao carregar as conversas.</p>';
+    }
+}
+
+function abrirConversa(id) {
+    const c = conversasAdminCache[id];
+    if (!c) return;
+
+    let modal = document.getElementById('modalConversa');
+    if (!modal) {
+        document.body.insertAdjacentHTML('beforeend', `
+        <div class="modal fade" id="modalConversa" tabindex="-1">
+          <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content rounded-4">
+            <div class="modal-header">
+              <h5 class="modal-title fw-bold" id="conversaTitulo"></h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div id="conversaHistorico" class="d-flex flex-column gap-2 p-3 rounded-3 bg-light" style="max-height: 420px; overflow-y: auto;"></div>
+              <div class="mt-3">
+                <label class="form-label fw-semibold small">Sua resposta (o aluno recebe no chat, dentro da plataforma)</label>
+                <textarea id="conversaResposta" class="form-control" rows="3" maxlength="3000" placeholder="Escreva a resposta..."></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-danger me-auto" id="btnResolverConversa"><i class="bi bi-check2"></i> Encerrar conversa</button>
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+              <button type="button" class="btn btn-primary fw-bold" id="btnEnviarResposta"><i class="bi bi-send"></i> Enviar resposta</button>
+            </div>
+          </div></div>
+        </div>`);
+        modal = document.getElementById('modalConversa');
+    }
+
+    document.getElementById('conversaTitulo').textContent = `${c.nome} · ${c.email}`;
+    document.getElementById('conversaResposta').value = '';
+    desenharHistoricoConversa(c);
+
+    document.getElementById('btnEnviarResposta').onclick = () => enviarRespostaConversa(id);
+    document.getElementById('btnResolverConversa').onclick = () => encerrarConversa(id);
+
+    bootstrap.Modal.getOrCreateInstance(modal).show();
+    setTimeout(() => document.getElementById('conversaResposta').focus(), 300);
+}
+
+function desenharHistoricoConversa(c) {
+    const box = document.getElementById('conversaHistorico');
+
+    const anexosHtml = lista => (lista && lista.length)
+        ? '<div class="mt-1">' + lista.map(a => `<button class="btn btn-sm btn-outline-secondary me-1 mb-1" onclick="baixarAnexo('${a.id}', this.dataset.nome)" data-nome="${esc(a.nome)}"><i class="bi bi-paperclip"></i> ${esc(a.nome)}</button>`).join('') + '</div>'
+        : '';
+
+    const balao = (autor, texto, anexos, data) => {
+        const bibli = autor === 'bibliotecario';
+        return `<div class="p-2 rounded-3 ${bibli ? 'bg-success bg-opacity-10 align-self-end' : 'bg-white border align-self-start'}" style="max-width: 80%;">
+                  <div class="small fw-semibold ${bibli ? 'text-success' : 'text-dark'}">${bibli ? 'Você (bibliotecário)' : esc(c.nome)}</div>
+                  <div style="white-space: pre-wrap;">${esc(texto)}</div>
+                  ${anexosHtml(anexos)}
+                  <div class="text-muted" style="font-size: .72rem;">${dataHora(data)}</div>
+                </div>`;
+    };
+
+    let html = balao('aluno', c.mensagem, c.anexos, c.criadoEm);
+    (c.respostas || []).forEach(r => { html += balao(r.autor, r.texto, r.anexos, r.criadoEm); });
+
+    box.innerHTML = html;
+    box.scrollTop = box.scrollHeight;
+}
+
+async function enviarRespostaConversa(id) {
+    const campo = document.getElementById('conversaResposta');
+    const texto = campo.value.trim();
+    if (!texto) { alert('Escreva a resposta antes de enviar.'); return; }
+
+    const botao = document.getElementById('btnEnviarResposta');
+    botao.disabled = true;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/suporte/chat/${id}/responder`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ texto })
+        });
+
+        const retorno = await response.text();
+
+        if (!response.ok) { alert(retorno || 'Não foi possível enviar a resposta.'); return; }
+
+        // recarrega a conversa e mostra a resposta na hora
+        await carregarChatAdmin();
+        const atualizada = conversasAdminCache[id];
+        if (atualizada) desenharHistoricoConversa(atualizada);
+        campo.value = '';
+    } catch (error) {
+        alert('Erro de comunicação com o servidor.');
+    } finally {
+        botao.disabled = false;
+    }
+}
+
+async function encerrarConversa(id) {
+    if (!confirm('Encerrar esta conversa? O aluno verá que foi finalizada e poderá abrir outra.')) return;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/suporte/chat/${id}/resolver`, { method: 'PUT' });
+        if (!response.ok) { alert(await response.text()); return; }
+
+        bootstrap.Modal.getInstance(document.getElementById('modalConversa'))?.hide();
+        carregarChatAdmin();
+        atualizarBadges();
+    } catch (error) {
+        alert('Erro de comunicação com o servidor.');
+    }
+}
+
+
+// ---- Relatórios personalizados (o bibliotecário escolhe a base e as colunas) ----
+let personalizadosCache = [];
+let ultimoPersonalizado = null;
+
+function montarPainelPersonalizado() {
+    if (document.getElementById('cardPersonalizado')) return;
+
+    const bases = Object.entries(RELATORIOS).map(([chave, r]) => `<option value="${chave}">${r.titulo}</option>`).join('');
+
+    document.getElementById('conteudoDinamico').insertAdjacentHTML('beforeend', `
+        <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4" id="cardPersonalizado">
+            <h5 class="fw-bold mb-3"><i class="bi bi-sliders me-2 text-primary"></i>Relatório personalizado</h5>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Base do relatório</label>
+                    <select id="pBase" class="form-select" onchange="atualizarColunasPersonalizado()">${bases}</select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Nome do relatório</label>
+                    <input type="text" id="pNome" class="form-control" maxlength="80" placeholder="Ex.: Atrasos do 2º semestre">
+                </div>
+                <div class="col-12">
+                    <label class="form-label small fw-semibold">Colunas</label>
+                    <div id="pColunas" class="d-flex flex-wrap gap-3"></div>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary btn-sm" onclick="salvarRelatorioPersonalizado()"><i class="bi bi-save"></i> Salvar relatório</button>
+                </div>
+            </div>
+            <hr>
+            <h6 class="fw-bold">Meus relatórios salvos</h6>
+            <div id="listaPersonalizados" class="table-responsive"></div>
+            <div id="resultadoPersonalizado" class="mt-3"></div>
+        </div>`);
+
+    atualizarColunasPersonalizado();
+    carregarPersonalizados();
+}
+
+function atualizarColunasPersonalizado() {
+    const base = document.getElementById('pBase').value;
+    document.getElementById('pColunas').innerHTML = RELATORIOS[base].colunas.map(([campo, rotulo]) =>
+        `<div class="form-check"><input class="form-check-input pCol" type="checkbox" value="${campo}" id="pc_${campo}" checked>
+         <label class="form-check-label" for="pc_${campo}">${rotulo}</label></div>`).join('');
+}
+
+async function salvarRelatorioPersonalizado() {
+    const nome = document.getElementById('pNome').value.trim();
+    const base = document.getElementById('pBase').value;
+    const colunas = [...document.querySelectorAll('.pCol:checked')].map(c => c.value);
+
+    if (nome.length < 3) { alert('Dê um nome ao relatório (mínimo 3 letras).'); return; }
+    if (colunas.length === 0) { alert('Escolha pelo menos uma coluna.'); return; }
+
+    try {
+        const resposta = await fetch(`${BACKEND_URL}/api/relatorios/personalizados`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ nome, base, colunas })
+        });
+        const texto = await resposta.text();
+        if (!resposta.ok) { alert(texto); return; }
+
+        alert('Relatório salvo!');
+        document.getElementById('pNome').value = '';
+        carregarPersonalizados();
+    } catch (erro) {
+        alert('Erro de comunicação com o servidor.');
+    }
+}
+
+async function carregarPersonalizados() {
+    const div = document.getElementById('listaPersonalizados');
+    if (!div) return;
+
+    try {
+        const resposta = await fetch(`${BACKEND_URL}/api/relatorios/personalizados`, { headers: getAuthHeaders() });
+        if (!resposta.ok) throw new Error('Falha');
+        personalizadosCache = await resposta.json();
+
+        if (personalizadosCache.length === 0) {
+            div.innerHTML = '<p class="text-muted mb-0">Nenhum relatório salvo ainda.</p>';
+            return;
+        }
+
+        div.innerHTML = `<table class="table align-middle">
+            <thead class="table-light"><tr><th>Nome</th><th>Base</th><th>Colunas</th><th class="text-end">Ações</th></tr></thead><tbody>` +
+            personalizadosCache.map(p => `<tr>
+                <td class="fw-semibold">${esc(p.nome)}</td>
+                <td class="small">${esc(RELATORIOS[p.base]?.titulo || p.base)}</td>
+                <td class="small">${p.colunas.length} coluna(s)</td>
+                <td class="text-end text-nowrap">
+                    <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="abrirPersonalizado('${p.id}')"><i class="bi bi-eye"></i> Gerar</button>
+                    <button class="btn btn-outline-danger btn-sm rounded-pill" onclick="excluirPersonalizado('${p.id}')"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>`).join('') + '</tbody></table>';
+    } catch (erro) {
+        div.innerHTML = '<p class="text-danger">Erro ao carregar os relatórios salvos.</p>';
+    }
+}
+
+async function abrirPersonalizado(id) {
+    const p = personalizadosCache.find(x => x.id === id);
+    if (!p) return;
+
+    const def = RELATORIOS[p.base];
+    const colunas = def.colunas.filter(([campo]) => p.colunas.includes(campo));
+    const box = document.getElementById('resultadoPersonalizado');
+
+    box.innerHTML = '<p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Gerando...</p>';
+
+    try {
+        const dados = await buscarRelatorio(p.base);
+
+        if (dados.length === 0) {
+            box.innerHTML = '<p class="text-muted">Nenhum registro no período escolhido.</p>';
+            ultimoPersonalizado = null;
+            return;
+        }
+
+        ultimoPersonalizado = {
+            nome: p.nome,
+            linhas: dados.map(l => {
+                const o = {};
+                colunas.forEach(([campo, rotulo]) => { o[rotulo] = l[campo]; });
+                return o;
+            })
+        };
+
+        box.innerHTML = `<h6 class="fw-bold">${esc(p.nome)}</h6>
+            <div class="table-responsive"><table class="table table-sm table-hover">
+                <thead class="table-light"><tr>${colunas.map(([, rotulo]) => `<th>${esc(rotulo)}</th>`).join('')}</tr></thead>
+                <tbody>${dados.map(l => `<tr>${colunas.map(([campo]) => `<td>${formatarCelula(def, campo, l[campo])}</td>`).join('')}</tr>`).join('')}</tbody>
+            </table></div>
+            <button class="btn btn-success btn-sm rounded-pill" onclick="baixarPersonalizadoExcel()"><i class="bi bi-file-earmark-excel"></i> Baixar em Excel</button>`;
+    } catch (erro) {
+        box.innerHTML = '<p class="text-danger">Erro ao gerar o relatório.</p>';
+    }
+}
+
+function baixarPersonalizadoExcel() {
+    if (!ultimoPersonalizado) return;
+
+    const planilha = XLSX.utils.json_to_sheet(ultimoPersonalizado.linhas);
+    const arquivo = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(arquivo, planilha, 'Relatório');
+    XLSX.writeFile(arquivo, `${ultimoPersonalizado.nome.replace(/[^\w\- ]/g, '').trim() || 'relatorio'}.xlsx`);
+}
+
+async function excluirPersonalizado(id) {
+    if (!confirm('Excluir este relatório salvo?')) return;
+
+    try {
+        const resposta = await fetch(`${BACKEND_URL}/api/relatorios/personalizados/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+        if (!resposta.ok) { alert(await resposta.text()); return; }
+        carregarPersonalizados();
+    } catch (erro) {
+        alert('Erro de comunicação com o servidor.');
+    }
+}
 
         // --- SAIR ---
         document.getElementById('btnLogout').addEventListener('click', (e) => { e.preventDefault(); sair(); });
