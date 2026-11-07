@@ -1461,7 +1461,7 @@ async function carregarSuporteAcesso() {
                     ? '<span class="badge bg-warning text-dark rounded-pill px-3 py-2">Pendente</span>'
                     : `<span class="badge bg-success rounded-pill px-3 py-2">Resolvido</span><div class="small text-muted mt-1">${dataHora(p.resolvidoEm)}</div>`}</td>
                 <td class="text-end text-nowrap">
-                    <a class="btn btn-outline-primary action-btn rounded-pill" href="mailto:${esc(p.email)}?subject=${encodeURIComponent('E-Library - suporte de acesso')}"><i class="bi bi-reply"></i> Responder</a>
+                    <button class="btn btn-outline-primary action-btn rounded-pill" onclick="responderPorEmail('${esc(p.email)}', 'E-Library - suporte de acesso')"><i class="bi bi-reply"></i> Responder por e-mail</button>
                     ${pendente ? `<button class="btn btn-success action-btn rounded-pill fw-bold" onclick="resolverSuporte('${p.id}')"><i class="bi bi-check2"></i> Resolver</button>` : ''}
                 </td>
             </tr>`;
@@ -2006,6 +2006,13 @@ async function excluirPersonalizado(id) {
         alert('Erro de comunicação com o servidor.');
     }
 }
+
+        // Abre a resposta no Gmail do próprio administrador (a conta que estiver logada no navegador)
+        function responderPorEmail(destinatario, assunto) {
+            const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(destinatario)
+                      + '&su=' + encodeURIComponent(assunto);
+            window.open(url, '_blank');
+        }
 
         // --- SAIR ---
         document.getElementById('btnLogout').addEventListener('click', (e) => { e.preventDefault(); sair(); });

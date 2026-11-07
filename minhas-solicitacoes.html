@@ -60,18 +60,14 @@
         </nav>
 
         <div class="container-fluid py-2">
-            <h5 class="fw-bold mb-3 text-secondary text-uppercase small">Conversas com o bibliotecário</h5>
-            <div class="btn-group mb-4" role="group">
-                <button class="btn btn-primary btn-sm rounded-start-pill px-4" id="filtroAndamento" onclick="filtrar('andamento')">Em andamento</button>
-                <button class="btn btn-outline-primary btn-sm rounded-end-pill px-4" id="filtroFinalizadas" onclick="filtrar('finalizadas')">Finalizadas</button>
+            <h5 class="fw-bold mb-3 text-secondary text-uppercase small">Minhas solicitações</h5>
+            <div class="d-flex flex-wrap gap-2 mb-4" role="group">
+                <button class="btn btn-primary btn-sm rounded-pill px-4" id="filtroAndamento" onclick="filtrar('andamento')">Em andamento</button>
+                <button class="btn btn-outline-primary btn-sm rounded-pill px-4" id="filtroFinalizadas" onclick="filtrar('finalizadas')">Finalizadas</button>
+                <button class="btn btn-outline-primary btn-sm rounded-pill px-4" id="filtroEmail" onclick="filtrar('email')">Por e-mail</button>
             </div>
             <div id="listaConversas" class="mb-5">
                 <p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando...</p>
-            </div>
-
-            <h5 class="fw-bold mb-3 text-secondary text-uppercase small">Reclamações e pedidos de suporte</h5>
-            <div class="bloco p-3 shadow-sm" id="listaReclamacoes">
-                <p class="text-muted mb-0">Carregando...</p>
             </div>
         </div>
     </div>
@@ -112,7 +108,6 @@
             }
 
             filtrar(filtroAtual);
-            desenharReclamacoes();
 
             // ao carregar a página, marca as respostas do bibliotecário como lidas
             for (const c of dadosSolicitacoes.conversas) {
@@ -124,14 +119,24 @@
 
         function filtrar(f) {
             filtroAtual = f;
-            document.getElementById('filtroAndamento').className = f === 'andamento' ? 'btn btn-primary btn-sm rounded-start-pill px-4' : 'btn btn-outline-primary btn-sm rounded-start-pill px-4';
-            document.getElementById('filtroFinalizadas').className = f === 'finalizadas' ? 'btn btn-primary btn-sm rounded-end-pill px-4' : 'btn btn-outline-primary btn-sm rounded-end-pill px-4';
 
-            const lista = dadosSolicitacoes.conversas.filter(c => f === 'finalizadas' ? finalizada(c) : !finalizada(c));
+            const abas = { andamento: 'filtroAndamento', finalizadas: 'filtroFinalizadas', email: 'filtroEmail' };
+            Object.entries(abas).forEach(([chave, id]) => {
+                document.getElementById(id).className = 'btn btn-sm rounded-pill px-4 ' + (chave === f ? 'btn-primary' : 'btn-outline-primary');
+            });
+
             const div = document.getElementById('listaConversas');
 
+            if (f === 'email') {
+                renderEmail(div);
+                return;
+            }
+
+            // Em andamento: chats ainda abertos. Finalizadas: só os que o bibliotecário marcou como resolvidos.
+            const lista = dadosSolicitacoes.conversas.filter(c => f === 'finalizadas' ? finalizada(c) : !finalizada(c));
+
             if (lista.length === 0) {
-                div.innerHTML = `<p class="text-muted">${f === 'finalizadas' ? 'Nenhuma conversa finalizada.' : 'Nenhuma conversa em andamento.'}</p>`;
+                div.innerHTML = `<p class="text-muted">${f === 'finalizadas' ? 'Nenhuma conversa finalizada pelo bibliotecário.' : 'Nenhuma conversa em andamento.'}</p>`;
                 return;
             }
 
@@ -199,8 +204,8 @@
             }
         }
 
-        function desenharReclamacoes() {
-            const div = document.getElementById('listaReclamacoes');
+        // Reclamações e pedidos de suporte de acesso: são enviados por e-mail para a ouvidoria
+        function renderEmail(div) {
             const lista = dadosSolicitacoes.reclamacoes || [];
 
             if (lista.length === 0) {

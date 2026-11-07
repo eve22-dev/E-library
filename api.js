@@ -236,6 +236,9 @@ function alternarTema() {
 document.addEventListener('DOMContentLoaded', () => {
     aplicarTema();
 
+    // Liga todos os botões de tema da página (inclusive os que já estão no HTML)
+    document.querySelectorAll('[data-tema-btn]').forEach(b => { b.onclick = alternarTema; });
+
     // Coloca o botão de tema ao lado do Sair, nas páginas que não têm um botão próprio
     const sair = document.getElementById('btnLogout') || document.getElementById('btnSair');
     if (sair && !document.querySelector('[data-tema-btn]')) {
