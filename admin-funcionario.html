@@ -39,7 +39,10 @@
                     <a class="nav-link" onclick="mudarAba('exemplares', event)"><i class="bi bi-journal-plus me-2"></i> Cadastro de Exemplares</a>
                 </li>
                 <li class="nav-item mb-2">
-                <a class="nav-link" onclick="mudarAba('acervo', event)"><i class="bi bi-journals me-2"></i> Acervo</a>
+                <a class="nav-link" onclick="mudarAba('acervo', event)"><i class="bi bi-journals me-2"></i> Acervo - administrar</a>
+                </li>
+                <li class="nav-item mb-2 d-none" id="navAcervoEmp">
+                    <a class="nav-link" href="home-aluno.html"><i class="bi bi-journal-plus me-2"></i> Acervo - empréstimos</a>
                 </li>
                 <li class="nav-item mb-2">
                     <a class="nav-link" onclick="mudarAba('tabelas', event)"><i class="bi bi-table me-2"></i> Tabelas e Códigos</a>
@@ -465,6 +468,7 @@
                                 <button type="submit" id="btnNovoUsuario" class="btn btn-primary fw-bold px-4"><i class="bi bi-person-check"></i> Cadastrar usuário</button>
                             </form>
                         </div>`;
+                    carregarUsuarios();
                 }
             } else if (aba === 'mensagens') {
                 container.innerHTML = `
@@ -2054,6 +2058,7 @@ async function excluirPersonalizado(id) {
         // ---- Cadastro de usuários (somente TI) ----
         document.addEventListener('DOMContentLoaded', () => {
             if (getRole() === 'ti') document.getElementById('navUsuarios').classList.remove('d-none');
+            if (['ti', 'bibliotecario'].includes(getRole())) document.getElementById('navAcervoEmp').classList.remove('d-none');
         });
 
         async function cadastrarUsuario(event) {
@@ -2088,6 +2093,215 @@ async function excluirPersonalizado(id) {
                 alert('Erro de comunicação com o servidor.');
             } finally {
                 botao.disabled = false;
+            }
+        }
+
+
+        // ---- Gestão de usuários (somente TI): listar, filtrar, editar, inativar, reativar e senha ----
+        let usuariosCache = [];
+
+        const rotuloPapel = p => ({ aluno: 'Aluno', professor: 'Professor', bibliotecario: 'Bibliotecário', ti: 'Administrador de TI' })[p] || p;
+
+        function ensureCardGestaoUsuarios() {
+            if (document.getElementById('gestaoUsuarios')) return;
+
+            document.getElementById('conteudoDinamico').insertAdjacentHTML('beforeend', `
+                <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4" id="gestaoUsuarios">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-people me-2 text-primary"></i>Usuários cadastrados</h5>
+                    <div class="row g-2 align-items-end mb-3">
+                        <div class="col-md-3"><label class="form-label small fw-semibold mb-1">Nome</label><input id="uFNome" class="form-control form-control-sm"></div>
+                        <div class="col-md-3"><label class="form-label small fw-semibold mb-1">E-mail</label><input id="uFEmail" class="form-control form-control-sm"></div>
+                        <div class="col-md-2"><label class="form-label small fw-semibold mb-1">RGM</label><input id="uFRgm" class="form-control form-control-sm"></div>
+                        <div class="col-md-2"><label class="form-label small fw-semibold mb-1">Papel</label>
+                            <select id="uFPapel" class="form-select form-select-sm">
+                                <option value="">Todos</option><option value="aluno">Aluno</option><option value="professor">Professor</option>
+                                <option value="bibliotecario">Bibliotecário</option><option value="ti">Administrador de TI</option>
+                            </select></div>
+                        <div class="col-md-2"><label class="form-label small fw-semibold mb-1">Situação</label>
+                            <select id="uFSituacao" class="form-select form-select-sm">
+                                <option value="">Todas</option><option value="ativo">Ativos</option><option value="inativo">Inativos</option>
+                            </select></div>
+                        <div class="col-12 d-flex gap-2">
+                            <button class="btn btn-primary btn-sm" onclick="carregarUsuarios()"><i class="bi bi-funnel"></i> Filtrar</button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="limparFiltroUsuarios()">Limpar filtros</button>
+                        </div>
+                    </div>
+                    <div id="listaUsuarios" class="table-responsive"><p class="text-muted">Carregando...</p></div>
+                </div>`);
+
+            document.querySelectorAll('#gestaoUsuarios input').forEach(c => c.addEventListener('keydown', e => { if (e.key === 'Enter') carregarUsuarios(); }));
+        }
+
+        function ensureModaisUsuarios() {
+            if (document.getElementById('modalEditarUsuario')) return;
+
+            document.body.insertAdjacentHTML('beforeend', `
+                <div class="modal fade" id="modalEditarUsuario" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content rounded-4">
+                    <div class="modal-header"><h5 class="modal-title fw-bold">Editar usuário</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-body">
+                        <input type="hidden" id="eUId">
+                        <div class="mb-3"><label class="form-label fw-semibold">Nome</label><input id="eUNome" class="form-control" maxlength="120"></div>
+                        <div class="mb-3"><label class="form-label fw-semibold">Papel</label>
+                            <select id="eUPapel" class="form-select">
+                                <option value="aluno">Aluno</option><option value="professor">Professor</option>
+                                <option value="bibliotecario">Bibliotecário</option><option value="ti">Administrador de TI</option>
+                            </select></div>
+                        <div class="mb-3"><label class="form-label fw-semibold">RGM</label><input id="eURgm" class="form-control" maxlength="30"></div>
+                        <div><label class="form-label fw-semibold">Curso</label><input id="eUCurso" class="form-control" maxlength="120"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary fw-bold" onclick="salvarEdicaoUsuario()">Salvar</button>
+                    </div>
+                </div></div></div>
+
+                <div class="modal fade" id="modalSenhaUsuario" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content rounded-4">
+                    <div class="modal-header"><h5 class="modal-title fw-bold">Redefinir senha</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-body">
+                        <input type="hidden" id="sUId">
+                        <div class="mb-3"><label class="form-label fw-semibold">Nova senha</label><input type="password" id="sUSenha" class="form-control" minlength="8" maxlength="72"></div>
+                        <div><label class="form-label fw-semibold">Confirmar nova senha</label><input type="password" id="sUConfirma" class="form-control" minlength="8" maxlength="72"></div>
+                        <div class="form-text mt-2">Mínimo de 8 caracteres. Informe a nova senha ao usuário por um canal seguro.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-dark fw-bold" onclick="salvarSenhaUsuario()">Redefinir</button>
+                    </div>
+                </div></div></div>`);
+        }
+
+        function limparFiltroUsuarios() {
+            ['uFNome', 'uFEmail', 'uFRgm'].forEach(id => { document.getElementById(id).value = ''; });
+            document.getElementById('uFPapel').value = '';
+            document.getElementById('uFSituacao').value = '';
+            carregarUsuarios();
+        }
+
+        async function carregarUsuarios() {
+            ensureCardGestaoUsuarios();
+            ensureModaisUsuarios();
+
+            const div = document.getElementById('listaUsuarios');
+            const filtros = new URLSearchParams();
+
+            [['nome', 'uFNome'], ['email', 'uFEmail'], ['rgm', 'uFRgm'], ['papel', 'uFPapel'], ['situacao', 'uFSituacao']]
+                .forEach(([chave, id]) => {
+                    const valor = document.getElementById(id).value.trim();
+                    if (valor) filtros.set(chave, valor);
+                });
+
+            try {
+                const resposta = await fetch(`${BACKEND_URL}/api/admin/usuarios?${filtros.toString()}`, { headers: getAuthHeaders() });
+                if (!resposta.ok) throw new Error(await resposta.text());
+                usuariosCache = await resposta.json();
+
+                if (usuariosCache.length === 0) {
+                    div.innerHTML = '<p class="text-muted mb-0">Nenhum usuário encontrado com esses filtros.</p>';
+                    return;
+                }
+
+                div.innerHTML = `<table class="table align-middle table-hover">
+                    <thead class="table-light"><tr><th>Nome</th><th>E-mail</th><th>RGM</th><th>Papel</th><th>Situação</th><th class="text-end">Ações</th></tr></thead><tbody>` +
+                    usuariosCache.map(u => `<tr>
+                        <td class="fw-semibold">${esc(u.nome)}</td>
+                        <td class="small">${esc(u.email)}</td>
+                        <td class="small">${esc(u.rgm)}</td>
+                        <td>${esc(rotuloPapel(u.papel))}</td>
+                        <td>${u.ativo
+                            ? '<span class="badge bg-success rounded-pill">Ativo</span>'
+                            : '<span class="badge bg-secondary rounded-pill">Inativo</span>'}</td>
+                        <td class="text-end text-nowrap">
+                            <button class="btn btn-outline-primary action-btn rounded-pill" onclick="abrirEditarUsuario('${u.id}')"><i class="bi bi-pencil"></i> Editar</button>
+                            <button class="btn btn-outline-dark action-btn rounded-pill" onclick="abrirSenhaUsuario('${u.id}')"><i class="bi bi-key"></i> Senha</button>
+                            ${u.ativo
+                                ? `<button class="btn btn-outline-danger action-btn rounded-pill" onclick="alterarSituacaoUsuario('${u.id}', false)"><i class="bi bi-person-x"></i> Inativar</button>`
+                                : `<button class="btn btn-outline-success action-btn rounded-pill" onclick="alterarSituacaoUsuario('${u.id}', true)"><i class="bi bi-person-check"></i> Reativar</button>`}
+                        </td>
+                    </tr>`).join('') + '</tbody></table>';
+            } catch (erro) {
+                div.innerHTML = `<p class="text-danger">${esc(erro.message || 'Erro ao carregar os usuários.')}</p>`;
+            }
+        }
+
+        function abrirEditarUsuario(id) {
+            const u = usuariosCache.find(x => x.id === id);
+            if (!u) return;
+
+            document.getElementById('eUId').value = u.id;
+            document.getElementById('eUNome').value = u.nome || '';
+            document.getElementById('eUPapel').value = u.papel;
+            document.getElementById('eURgm').value = u.rgm || '';
+            document.getElementById('eUCurso').value = u.curso || '';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarUsuario')).show();
+        }
+
+        async function salvarEdicaoUsuario() {
+            const id = document.getElementById('eUId').value;
+            const corpo = {
+                nome: document.getElementById('eUNome').value.trim(),
+                papel: document.getElementById('eUPapel').value,
+                rgm: document.getElementById('eURgm').value.trim() || null,
+                curso: document.getElementById('eUCurso').value.trim() || null
+            };
+
+            try {
+                const resposta = await fetch(`${BACKEND_URL}/api/admin/usuarios/${id}`, {
+                    method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(corpo)
+                });
+                const texto = await resposta.text();
+                if (!resposta.ok) { alert(texto); return; }
+
+                bootstrap.Modal.getInstance(document.getElementById('modalEditarUsuario')).hide();
+                alert(texto);
+                carregarUsuarios();
+            } catch (erro) {
+                alert('Erro de comunicação com o servidor.');
+            }
+        }
+
+        function abrirSenhaUsuario(id) {
+            document.getElementById('sUId').value = id;
+            document.getElementById('sUSenha').value = '';
+            document.getElementById('sUConfirma').value = '';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalSenhaUsuario')).show();
+        }
+
+        async function salvarSenhaUsuario() {
+            const id = document.getElementById('sUId').value;
+            const senha = document.getElementById('sUSenha').value;
+
+            if (senha.length < 8) { alert('A senha precisa ter pelo menos 8 caracteres.'); return; }
+            if (senha !== document.getElementById('sUConfirma').value) { alert('As senhas não coincidem.'); return; }
+
+            try {
+                const resposta = await fetch(`${BACKEND_URL}/api/admin/usuarios/${id}/senha`, {
+                    method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ senha })
+                });
+                const texto = await resposta.text();
+                if (!resposta.ok) { alert(texto); return; }
+
+                bootstrap.Modal.getInstance(document.getElementById('modalSenhaUsuario')).hide();
+                alert('Senha redefinida. Informe a nova senha ao usuário.');
+            } catch (erro) {
+                alert('Erro de comunicação com o servidor.');
+            }
+        }
+
+        async function alterarSituacaoUsuario(id, ativar) {
+            const pergunta = ativar
+                ? 'Reativar este usuário? Ele volta a conseguir entrar no sistema.'
+                : 'Inativar este usuário? Ele deixa de conseguir entrar no sistema, inclusive se já estiver logado.';
+            if (!confirm(pergunta)) return;
+
+            try {
+                const resposta = await fetch(`${BACKEND_URL}/api/admin/usuarios/${id}/${ativar ? 'reativar' : 'inativar'}`, {
+                    method: 'PUT', headers: getAuthHeaders()
+                });
+                const texto = await resposta.text();
+                alert(texto);
+                if (resposta.ok) carregarUsuarios();
+            } catch (erro) {
+                alert('Erro de comunicação com o servidor.');
             }
         }
 
