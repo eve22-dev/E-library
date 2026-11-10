@@ -53,6 +53,9 @@
                         <span class="position-absolute top-50 start-85 translate-middle p-1 bg-danger border border-light rounded-circle d-none" id="badgeNotificacao"></span>
                     </a>
                 </li>
+                            <li class="nav-item mb-2 d-none" id="navUsuarios">
+                    <a class="nav-link" onclick="mudarAba('usuarios', event)"><i class="bi bi-person-plus me-2"></i> Usuários</a>
+                </li>
             </ul>
         </div>
         <div>
@@ -184,7 +187,7 @@
     <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
     <script>
         // Só bibliotecário entra aqui (o back também valida o papel em cada rota)
-        exigirPapel(['bibliotecario']);
+        exigirPapel(['bibliotecario', 'ti']);
 
         new window.VLibras.Widget('https://vlibras.gov.br/app');
 
@@ -418,6 +421,51 @@
                     </div>`;
                 carregarCategorias();
 
+            } else if (aba === 'usuarios') {
+                if (getRole() !== 'ti') {
+                    container.innerHTML = `<h2 class="fw-bold text-dark">Acesso restrito</h2><p class="text-muted">Somente o administrador de TI cria usuários.</p>`;
+                } else {
+                    container.innerHTML = `
+                        <h2 class="fw-bold text-dark">Cadastro de usuários</h2>
+                        <p class="text-muted">Crie contas de aluno, professor, bibliotecário ou de outro administrador de TI. O sistema gera o identificador automaticamente.</p>
+                        <div class="card border-0 shadow-sm p-4 rounded-4 bg-white mt-4" style="max-width: 760px;">
+                            <form id="formNovoUsuario" onsubmit="cadastrarUsuario(event)">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-semibold">Nome completo</label>
+                                        <input type="text" id="nuNome" class="form-control" required maxlength="120">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-semibold">E-mail institucional</label>
+                                        <input type="email" id="nuEmail" class="form-control" required maxlength="160">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-semibold">Senha inicial</label>
+                                        <input type="password" id="nuSenha" class="form-control" required minlength="8" maxlength="72">
+                                        <div class="form-text">Mínimo de 8 caracteres.</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-semibold">Papel</label>
+                                        <select id="nuPapel" class="form-select" required>
+                                            <option value="aluno">Aluno</option>
+                                            <option value="professor">Professor</option>
+                                            <option value="bibliotecario">Bibliotecário</option>
+                                            <option value="ti">Administrador de TI</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-semibold">RGM (opcional)</label>
+                                        <input type="text" id="nuRgm" class="form-control" maxlength="30">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-semibold">Curso (opcional)</label>
+                                        <input type="text" id="nuCurso" class="form-control" maxlength="120">
+                                    </div>
+                                </div>
+                                <button type="submit" id="btnNovoUsuario" class="btn btn-primary fw-bold px-4"><i class="bi bi-person-check"></i> Cadastrar usuário</button>
+                            </form>
+                        </div>`;
+                }
             } else if (aba === 'mensagens') {
                 container.innerHTML = `
                     <h2 class="fw-bold text-dark">Solicitações de Atendimento (Chat)</h2>
@@ -2002,6 +2050,46 @@ async function excluirPersonalizado(id) {
         alert('Erro de comunicação com o servidor.');
     }
 }
+
+        // ---- Cadastro de usuários (somente TI) ----
+        document.addEventListener('DOMContentLoaded', () => {
+            if (getRole() === 'ti') document.getElementById('navUsuarios').classList.remove('d-none');
+        });
+
+        async function cadastrarUsuario(event) {
+            event.preventDefault();
+            const botao = document.getElementById('btnNovoUsuario');
+            botao.disabled = true;
+
+            const corpo = {
+                nome: document.getElementById('nuNome').value.trim(),
+                email: document.getElementById('nuEmail').value.trim(),
+                senha: document.getElementById('nuSenha').value,
+                papel: document.getElementById('nuPapel').value,
+                rgm: document.getElementById('nuRgm').value.trim() || null,
+                curso: document.getElementById('nuCurso').value.trim() || null
+            };
+
+            try {
+                const resposta = await fetch(`${BACKEND_URL}/api/admin/usuarios`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(corpo)
+                });
+                const texto = await resposta.text();
+
+                if (resposta.ok) {
+                    alert(`${corpo.nome} cadastrado como ${corpo.papel}. Ele já pode entrar com o e-mail e a senha informados.`);
+                    document.getElementById('formNovoUsuario').reset();
+                } else {
+                    alert(texto || 'Não foi possível cadastrar o usuário.');
+                }
+            } catch (erro) {
+                alert('Erro de comunicação com o servidor.');
+            } finally {
+                botao.disabled = false;
+            }
+        }
 
         // Abre a resposta no Gmail do próprio administrador (a conta que estiver logada no navegador)
         function responderPorEmail(destinatario, assunto) {

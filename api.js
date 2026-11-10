@@ -15,7 +15,8 @@ const BACKEND_URL = API_URL; // nome usado nas páginas
 const HOME_POR_PAPEL = {
     aluno: "home-aluno.html",
     professor: "home-aluno.html",
-    bibliotecario: "admin-funcionario.html"
+    bibliotecario: "admin-funcionario.html",
+    ti: "admin-funcionario.html"
 };
 
 // ---------------- sessão ----------------
