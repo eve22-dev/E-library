@@ -509,6 +509,7 @@
                         <div class="d-flex gap-2 mb-3">
                             <button id="abaChatAndamento" class="btn btn-primary btn-sm rounded-pill px-4" onclick="filtrarChatAdmin('andamento')">Em andamento</button>
                             <button id="abaChatFinalizadas" class="btn btn-outline-primary btn-sm rounded-pill px-4" onclick="filtrarChatAdmin('finalizadas')">Finalizadas</button>
+                            <button id="abaChatEmail" class="btn btn-outline-primary btn-sm rounded-pill px-4" onclick="filtrarChatAdmin('email')">Por e-mail</button>
                         </div>
                         <div id="listaMensagens" class="table-responsive">
                             <p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando...</p>
@@ -1752,9 +1753,40 @@ let filtroChatAdmin = 'andamento';
 
 function filtrarChatAdmin(f) {
     filtroChatAdmin = f;
-    document.getElementById('abaChatAndamento').className = 'btn btn-sm rounded-pill px-4 ' + (f === 'andamento' ? 'btn-primary' : 'btn-outline-primary');
-    document.getElementById('abaChatFinalizadas').className = 'btn btn-sm rounded-pill px-4 ' + (f === 'finalizadas' ? 'btn-primary' : 'btn-outline-primary');
-    carregarChatAdmin();
+    const abas = { andamento: 'abaChatAndamento', finalizadas: 'abaChatFinalizadas', email: 'abaChatEmail' };
+    Object.entries(abas).forEach(([chave, id]) => {
+        document.getElementById(id).className = 'btn btn-sm rounded-pill px-4 ' + (chave === f ? 'btn-primary' : 'btn-outline-primary');
+    });
+    if (f === 'email') carregarProtocolosAdmin(); else carregarChatAdmin();
+}
+
+async function carregarProtocolosAdmin() {
+    const div = document.getElementById('listaMensagens');
+    div.innerHTML = '<p class="text-muted"><span class="spinner-border spinner-border-sm text-primary"></span> Carregando...</p>';
+
+    try {
+        const resposta = await fetch(`${BACKEND_URL}/api/minhas-solicitacoes`, { headers: getAuthHeaders() });
+        if (!resposta.ok) throw new Error('Falha');
+        const lista = (await resposta.json()).reclamacoes || [];
+
+        if (lista.length === 0) {
+            div.innerHTML = '<p class="text-muted mb-0">Você ainda não enviou solicitações por e-mail.</p>';
+            return;
+        }
+
+        div.innerHTML = `<table class="table align-middle">
+            <thead class="table-light"><tr><th>Protocolo</th><th>Tipo</th><th>Situação</th><th>Data</th></tr></thead><tbody>` +
+            lista.map(r => `<tr>
+                <td><code>${esc(r.protocolo)}</code></td>
+                <td>${r.tipo === 'suporte_acesso' ? 'Suporte de acesso' : 'Reclamação'}</td>
+                <td>${r.status_envio === 'enviada'
+                    ? '<span class="badge bg-success rounded-pill">Enviada por e-mail</span>'
+                    : '<span class="badge bg-danger rounded-pill">Falha no envio</span>'}</td>
+                <td class="small">${dataHora(r.criada_em)}</td>
+            </tr>`).join('') + '</tbody></table>';
+    } catch (erro) {
+        div.innerHTML = '<p class="text-danger">Erro ao carregar as solicitações por e-mail.</p>';
+    }
 }
 
 async function carregarChatAdmin() {
@@ -1845,6 +1877,11 @@ function abrirConversa(id) {
 
     document.getElementById('conversaTitulo').textContent = `${c.nome} · ${c.email}`;
     document.getElementById('conversaResposta').value = '';
+
+    const encerrada = String(c.status).toLowerCase() === 'resolvido';
+    document.getElementById('btnResolverConversa').classList.toggle('d-none', encerrada);
+    document.getElementById('btnEnviarResposta').classList.toggle('d-none', encerrada);
+    document.getElementById('conversaResposta').parentElement.classList.toggle('d-none', encerrada);
     desenharHistoricoConversa(c);
 
     document.getElementById('btnEnviarResposta').onclick = () => enviarRespostaConversa(id);
@@ -2406,27 +2443,101 @@ async function excluirPersonalizado(id) {
             if (!div) return;
 
             try {
-                const resposta = await fetch(`${BACKEND_URL}/api/emprestimos/meus`, { headers: getAuthHeaders() });
-                if (!resposta.ok) throw new Error('Falha');
-                const lista = await resposta.json();
+                const [respEmp, respMul] = await Promise.all([
+                    fetch(`${BACKEND_URL}/api/emprestimos/meus`, { headers: getAuthHeaders() }),
+                    fetch(`${BACKEND_URL}/api/multas/minhas`, { headers: getAuthHeaders() })
+                ]);
+                if (!respEmp.ok) throw new Error('Falha');
+                const lista = await respEmp.json();
+                const multas = respMul.ok ? await respMul.json() : [];
+
+                let html = '';
 
                 if (lista.length === 0) {
-                    div.innerHTML = '<p class="text-muted mb-0">Você não tem empréstimos nem reservas.</p>';
-                    return;
+                    html += '<p class="text-muted mb-0">Você não tem empréstimos nem reservas.</p>';
+                } else {
+                    html += `<table class="table align-middle">
+                        <thead class="table-light"><tr><th>Livro</th><th>Devolver até</th><th>Situação</th><th class="text-end">Ações</th></tr></thead><tbody>` +
+                        lista.map(e => {
+                            const dias = e.dataPrevista ? diasParaVencer(e.dataPrevista) : 0;
+                            const emAndamento = e.status === 'retirado' || e.status === 'atrasado';
+                            let acao = '';
+
+                            if (e.status === 'solicitado') {
+                                acao += `<button class="btn btn-outline-danger btn-sm rounded-pill" onclick="cancelarReservaStaff('${e.id}')">Cancelar reserva</button> `;
+                            }
+                            if (emAndamento && dias <= 3) {
+                                if (!e.renegociacaoStatus) {
+                                    acao += `<button class="btn btn-outline-primary btn-sm rounded-pill" onclick="renegociarStaff('${e.id}')">Renegociar prazo</button> `;
+                                } else if (e.renegociacaoStatus === 'pendente') {
+                                    acao += '<span class="badge bg-info text-dark rounded-pill">Renegociação aguardando aprovação</span> ';
+                                } else if (e.renegociacaoStatus === 'recusada') {
+                                    acao += '<span class="badge bg-secondary rounded-pill">Renegociação recusada</span> ';
+                                } else if (e.renegociacaoStatus === 'aprovada') {
+                                    acao += '<span class="badge bg-success rounded-pill">Prazo renegociado</span> ';
+                                }
+                            }
+
+                            const atraso = emAndamento && dias < 0
+                                ? `<div class="small text-danger">Multa acumulada: ${formatarReal(Math.abs(dias) * VALOR_MULTA_DIA)}</div>`
+                                : '';
+
+                            return `<tr>
+                                <td class="fw-semibold">${esc(e.livro?.titulo)}</td>
+                                <td class="small">${e.dataPrevista ? new Date(e.dataPrevista + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}</td>
+                                <td><span class="badge bg-secondary rounded-pill">${esc(rotuloStatus(e.status))}</span>${atraso}</td>
+                                <td class="text-end">${acao}</td>
+                            </tr>`;
+                        }).join('') + '</tbody></table>';
                 }
 
-                div.innerHTML = `<table class="table align-middle">
-                    <thead class="table-light"><tr><th>Livro</th><th>Devolver até</th><th>Situação</th><th class="text-end">Ação</th></tr></thead><tbody>` +
-                    lista.map(e => `<tr>
-                        <td class="fw-semibold">${esc(e.livro?.titulo)}</td>
-                        <td class="small">${e.dataPrevista ? new Date(e.dataPrevista + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}</td>
-                        <td><span class="badge bg-secondary rounded-pill">${esc(rotuloStatus(e.status))}</span></td>
-                        <td class="text-end">${e.status === 'solicitado'
-                            ? `<button class="btn btn-outline-danger btn-sm rounded-pill" onclick="cancelarReservaStaff('${e.id}')">Cancelar reserva</button>`
-                            : ''}</td>
-                    </tr>`).join('') + '</tbody></table>';
+                if (multas.length > 0) {
+                    html += `<h6 class="fw-bold mt-4">Minhas multas</h6>
+                        <table class="table align-middle">
+                        <thead class="table-light"><tr><th>Livro</th><th>Dias de atraso</th><th>Valor</th><th>Situação</th><th class="text-end">Ação</th></tr></thead><tbody>` +
+                        multas.map(m => {
+                            const pendente = m.status === 'pendente';
+                            return `<tr>
+                                <td class="fw-semibold">${esc(m.emprestimo?.livro?.titulo)}</td>
+                                <td>${m.diasAtraso}</td>
+                                <td class="fw-semibold">${formatarReal(m.valor)}</td>
+                                <td>${pendente
+                                    ? '<span class="badge bg-danger rounded-pill">Pendente</span>'
+                                    : '<span class="badge bg-success rounded-pill">Paga</span>'}</td>
+                                <td class="text-end">${pendente
+                                    ? `<button class="btn btn-success btn-sm rounded-pill fw-bold" onclick="pagarMultaStaff('${m.id}', ${m.valor})">Pagar</button>`
+                                    : ''}</td>
+                            </tr>`;
+                        }).join('') + '</tbody></table>';
+                }
+
+                div.innerHTML = html;
             } catch (erro) {
                 div.innerHTML = '<p class="text-danger">Erro ao carregar seus empréstimos.</p>';
+            }
+        }
+
+        async function renegociarStaff(id) {
+            if (!confirm('Pedir mais prazo para este livro? O bibliotecário precisa aprovar.')) return;
+
+            try {
+                const resposta = await fetch(`${BACKEND_URL}/api/emprestimos/${id}/renegociar`, { method: 'POST', headers: getAuthHeaders() });
+                alert(await resposta.text());
+                if (resposta.ok) carregarMeusEmprestimosStaff();
+            } catch (erro) {
+                alert('Erro de comunicação com o servidor.');
+            }
+        }
+
+        async function pagarMultaStaff(id, valor) {
+            if (!confirm(`Pagar ${formatarReal(valor)} agora? O pagamento é simulado: nenhum valor é cobrado.`)) return;
+
+            try {
+                const resposta = await fetch(`${BACKEND_URL}/api/multas/${id}/pagar`, { method: 'POST', headers: getAuthHeaders() });
+                alert(resposta.ok ? 'Pagamento confirmado! Obrigado.' : await resposta.text());
+                if (resposta.ok) carregarMeusEmprestimosStaff();
+            } catch (erro) {
+                alert('Erro de comunicação com o servidor.');
             }
         }
 

@@ -79,6 +79,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="api.js"></script>
     <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
     <script>
@@ -153,36 +154,75 @@
             return (lista || []).map(a => `<button class="btn btn-sm btn-outline-secondary me-1 mt-1" onclick="baixarAnexo('${a.id}', this.dataset.nome)" data-nome="${esc(a.nome)}"><i class="bi bi-paperclip"></i> ${esc(a.nome)}</button>`).join('');
         }
 
+        // Cada conversa vira um resumo; o conteúdo completo abre no botão "Abrir"
         function cardConversa(c) {
-            const respostas = (c.respostas || []).map(r => {
-                const bibli = r.autor === 'bibliotecario';
-                return `<div class="msg ${bibli ? 'msg-biblio' : 'msg-aluno'}">
-                    <b>${bibli ? 'Bibliotecário' : 'Você'}</b> <span class="small text-muted">${dataHora(r.criadoEm)}</span><br>
-                    <span style="white-space: pre-wrap;">${esc(r.texto)}</span>
-                    <div>${anexosHtml(r.anexos)}</div>
-                </div>`;
-            }).join('');
+            const ultima = (c.respostas && c.respostas.length) ? c.respostas[c.respostas.length - 1] : null;
+            const trecho = ultima ? ultima.texto : c.mensagem;
+            const quem = ultima && ultima.autor === 'bibliotecario' ? 'Bibliotecário' : 'Você';
 
-            const responder = finalizada(c)
-                ? '<p class="small text-muted mb-0 mt-2">Esta conversa foi finalizada pelo bibliotecário. Envie uma nova dúvida pelo chat para abrir outra.</p>'
-                : `<div class="mt-3">
-                    <textarea class="form-control mb-2" rows="2" id="resp_${c.id}" maxlength="3000" placeholder="Responder ao bibliotecário..."></textarea>
-                    <input type="file" class="form-control form-control-sm mb-2" id="file_${c.id}" accept=".jpg,.jpeg,.png,.pdf" multiple>
-                    <button class="btn btn-primary btn-sm rounded-pill" onclick="responder('${c.id}')"><i class="bi bi-send me-1"></i>Enviar</button>
-                </div>`;
-
-            return `<div class="bloco p-3 shadow-sm mb-3">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                    <span class="small text-muted">Aberta em ${dataHora(c.criadoEm)}</span>
+            return `<div class="bloco p-3 shadow-sm mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div style="min-width: 240px; flex: 1;">
+                    <div class="small text-muted mb-1">Aberta em ${dataHora(c.criadoEm)}</div>
+                    <div class="fw-semibold text-truncate" style="max-width: 560px;">${esc(trecho)}</div>
+                    <div class="small text-muted">Última mensagem: ${quem}${c.naoLidas > 0 ? ` · <span class="badge bg-danger">${c.naoLidas} nova(s)</span>` : ''}</div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
                     ${badgeConversa(c)}
+                    <button class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="abrirConversaAluno('${c.id}')"><i class="bi bi-chat-text me-1"></i>Abrir</button>
                 </div>
-                <div class="msg msg-aluno">
-                    <b>Você</b><br><span style="white-space: pre-wrap;">${esc(c.mensagem)}</span>
-                    <div>${anexosHtml(c.anexos)}</div>
-                </div>
-                ${respostas}
-                ${responder}
             </div>`;
+        }
+
+        function ensureModalConversaAluno() {
+            if (document.getElementById('modalConversaAluno')) return;
+
+            document.body.insertAdjacentHTML('beforeend', `
+                <div class="modal fade" id="modalConversaAluno" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content rounded-4">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold" id="conversaAlunoTitulo"></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body" id="conversaAlunoCorpo"></div>
+                    </div></div>
+                </div>`);
+        }
+
+        function abrirConversaAluno(id) {
+            const c = (dadosSolicitacoes.conversas || []).find(x => x.id === id);
+            if (!c) return;
+
+            ensureModalConversaAluno();
+
+            const bloco = (classe, autor, texto, anexos, data) => `<div class="msg ${classe}">
+                <b>${autor}</b> <span class="small text-muted">${dataHora(data)}</span><br>
+                <span style="white-space: pre-wrap;">${esc(texto)}</span>
+                <div>${anexosHtml(anexos)}</div>
+            </div>`;
+
+            const respostas = (c.respostas || []).map(r => r.autor === 'bibliotecario'
+                ? bloco('msg-biblio', 'Bibliotecário', r.texto, r.anexos, r.criadoEm)
+                : bloco('msg-aluno', 'Você', r.texto, r.anexos, r.criadoEm)).join('');
+
+            const encerrada = finalizada(c);
+
+            document.getElementById('conversaAlunoTitulo').textContent = 'Conversa com o bibliotecário';
+            document.getElementById('conversaAlunoCorpo').innerHTML = `
+                ${bloco('msg-aluno', 'Você', c.mensagem, c.anexos, c.criadoEm)}
+                ${respostas}
+                ${encerrada
+                    ? '<p class="small text-muted mb-0 mt-2">Esta conversa foi finalizada pelo bibliotecário. Envie uma nova dúvida pelo chat para abrir outra.</p>'
+                    : `<div class="mt-3">
+                        <textarea class="form-control mb-2" rows="2" id="resp_${c.id}" maxlength="3000" placeholder="Responder ao bibliotecário..."></textarea>
+                        <input type="file" class="form-control form-control-sm mb-2" id="file_${c.id}" accept=".jpg,.jpeg,.png,.pdf" multiple>
+                        <button class="btn btn-primary btn-sm rounded-pill" onclick="responder('${c.id}')"><i class="bi bi-send me-1"></i>Enviar</button>
+                      </div>`}`;
+
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalConversaAluno')).show();
+
+            if (c.naoLidas > 0) {
+                fetch(`${API_URL}/api/chat/conversas/${id}/lida`, { method: 'PUT' }).then(() => { c.naoLidas = 0; });
+            }
         }
 
         async function responder(id) {
@@ -198,7 +238,8 @@
                 const retorno = await resposta.text();
                 if (!resposta.ok) { alert(retorno); return; }
                 alert('Mensagem enviada ao bibliotecário.');
-                carregar();
+                await carregar();
+                abrirConversaAluno(id);
             } catch (erro) {
                 alert('Erro de comunicação com o servidor.');
             }
