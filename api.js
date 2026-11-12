@@ -212,6 +212,8 @@ html.tema-escuro .bloco { background-color: #1f2937 !important; color: #e5e7eb !
 html.tema-escuro .msg { color: #e5e7eb !important; }
 html.tema-escuro .msg-aluno { background-color: #263a5c !important; }
 html.tema-escuro .msg-biblio { background-color: #1d3b2e !important; }
+html.tema-escuro .card-livro h6 { color: #e5e7eb !important; }
+html.tema-escuro .card-img-placeholder { background-color: #2b3647 !important; color: #6b7280 !important; }
 `;
 
 function aplicarTema() {
