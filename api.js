@@ -208,6 +208,10 @@ html.tema-escuro #chat-box { background: #1f2937; color: #e5e7eb; }
 html.tema-escuro #chat-messages { background: #111827; }
 html.tema-escuro #chat-messages .msg-bot { background: #1f2937; color: #e5e7eb; border-color: #374151; }
 html.tema-escuro #chat-box .chat-entrada, html.tema-escuro #chat-box .chat-acoes, html.tema-escuro #chat-anexos { background: #1f2937; }
+html.tema-escuro .bloco { background-color: #1f2937 !important; color: #e5e7eb !important; }
+html.tema-escuro .msg { color: #e5e7eb !important; }
+html.tema-escuro .msg-aluno { background-color: #263a5c !important; }
+html.tema-escuro .msg-biblio { background-color: #1d3b2e !important; }
 `;
 
 function aplicarTema() {

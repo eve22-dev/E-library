@@ -157,8 +157,10 @@
             <div class="modal-body">
             <input type="hidden" id="reposicaoId">
             <p class="mb-3">Livro: <strong id="reposicaoTitulo"></strong></p>
-            <label class="form-label fw-semibold">Código do exemplar NOVO entregue pelo usuário</label>
-            <input type="text" id="reposicaoCodigo" class="form-control" placeholder="Bipe a etiqueta do exemplar novo" autocomplete="off">
+            <label class="form-label fw-semibold">Código do novo exemplar</label>
+            <input type="text" id="reposicaoCodigo" class="form-control" placeholder="Bipe a etiqueta ou gere um código" autocomplete="off">
+            <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="gerarCodigoReposicao()"><i class="bi bi-magic"></i> Gerar código do novo exemplar</button>
+            <div class="form-text">Se o livro novo ainda não tem etiqueta, gere um código e cole na etiqueta.</div>
             </div>
             <div class="modal-footer">
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -2442,6 +2444,13 @@ async function excluirPersonalizado(id) {
             } catch (erro) {
                 alert('Erro de comunicação com o servidor.');
             }
+        }
+
+        // Gera um código único para o exemplar de reposição (ex.: EX-7KQ2M9)
+        function gerarCodigoReposicao() {
+            const letras = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+            const sufixo = Array.from({ length: 6 }, () => letras[Math.floor(Math.random() * letras.length)]).join('');
+            document.getElementById('reposicaoCodigo').value = 'EX-' + sufixo;
         }
 
         // Abre a resposta no Gmail do próprio administrador (a conta que estiver logada no navegador)
